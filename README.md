@@ -16,20 +16,22 @@ A modular, scheduler-driven data transfer platform built with Python. FileFlow a
 ## Architecture
 
 ```
-fileflow_agent/
-├── configs/              # YAML job definitions
+├── configs/                # YAML job definitions
 ├── src/fileflow_agent/
-│   ├── api/              # FastAPI endpoints + dashboard serving
-│   ├── config/           # Pydantic models and settings loader
-│   ├── connectors/       # Source/Destination connector implementations
-│   ├── logging/          # Structured rotating logger
-│   ├── processing/       # File processing pipeline
-│   ├── scheduler/        # APScheduler integration
-│   ├── services/         # Transfer, backup, retention, verification
-│   ├── static/           # Dashboard frontend (HTML/CSS/JS)
-│   ├── tracking/         # SQLite transfer history & deduplication
-│   └── utils/            # Checksum utilities
-└── tests/
+│   ├── api/                # FastAPI endpoints + dashboard serving
+│   ├── config/             # Pydantic models and settings loader
+│   ├── connectors/         # Source/Destination connector implementations
+│   ├── logging/            # Structured rotating logger
+│   ├── processing/         # File processing pipeline
+│   ├── scheduler/          # APScheduler integration
+│   ├── services/           # Transfer, backup, retention, verification
+│   ├── static/             # Dashboard frontend (HTML/CSS/JS)
+│   ├── tracking/           # SQLite transfer history & deduplication
+│   └── utils/              # Checksum utilities
+├── tests/
+├── pyproject.toml
+├── requirements.txt
+└── README.md
 ```
 
 ## Getting Started
@@ -43,7 +45,7 @@ fileflow_agent/
 
 ```bash
 git clone git@github.com:emoncse/fileflow.git
-cd fileflow/fileflow_agent
+cd fileflow
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
