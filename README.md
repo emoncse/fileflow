@@ -17,6 +17,8 @@ A modular, scheduler-driven data transfer platform built with Python. FileFlow a
 
 ```
 ├── configs/                # YAML job definitions
+│   ├── jobs.yaml
+│   └── test_jobs.yaml
 ├── src/fileflow_agent/
 │   ├── api/                # FastAPI endpoints + dashboard serving
 │   ├── config/             # Pydantic models and settings loader
@@ -27,12 +29,15 @@ A modular, scheduler-driven data transfer platform built with Python. FileFlow a
 │   ├── services/           # Transfer, backup, retention, verification
 │   ├── static/             # Dashboard frontend (HTML/CSS/JS)
 │   ├── tracking/           # SQLite transfer history & deduplication
-│   └── utils/              # Checksum utilities
-├── tests/
+│   ├── utils/              # Checksum utilities
+│   └── main.py             # Application entrypoint
+├── test_*.py               # Unit and integration tests
+├── .env.example
 ├── pyproject.toml
 ├── requirements.txt
 └── README.md
 ```
+
 
 ## Getting Started
 
