@@ -1,0 +1,13 @@
+
+jobs:
+  - job_id: test_job_1
+    enabled: true
+    schedule: "0 * * * *"
+    source:
+      type: local
+      path: /tmp/source
+    destination:
+      type: s3
+      path: dest/
+      bucket: my-bucket
+    

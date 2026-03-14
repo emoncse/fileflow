@@ -1,0 +1,22 @@
+[project]
+name = "fileflow_agent"
+version = "0.1.0"
+description = "A scheduler-driven data transfer platform"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "python-dotenv",
+    "pydantic",
+    "pydantic-settings",
+    "PyYAML",
+    "apscheduler",
+    "fastapi",
+    "uvicorn",
+    "paramiko",
+    "boto3",
+    "hdfs"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

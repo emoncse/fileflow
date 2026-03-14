@@ -1,0 +1,29 @@
+jobs:
+  - job_id: local_to_local_backup
+    enabled: true
+    # Run every 5 minutes
+    schedule: "*/5 * * * *"
+
+    source:
+      type: local
+      # Change this to an existing source path
+      path: /tmp/fileflow_source
+      file_pattern: "*.csv"
+
+    destination:
+      type: local
+      path: /tmp/fileflow_dest
+
+    processing:
+      enabled: true
+      steps:
+        - compress
+        - rename
+
+    backup:
+      enabled: true
+      location: backups/local
+      retention_days: 30
+
+    verification:
+      method: size_match

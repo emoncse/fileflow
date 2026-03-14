@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FileFlow Agent Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="brand">
+                <div class="logo-icon">FF</div>
+                <h1>FileFlow</h1>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-view="dashboard">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                    Dashboard
+                </li>
+                <li data-view="config">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    Configuration
+                </li>
+                <li data-view="logs">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    System Logs
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="content">
+            <header class="topbar">
+                <h2>Overview</h2>
+                <div class="status-indicator">
+                    <span class="dot pulse"></span>
+                    <span id="system-status">System Online</span>
+                </div>
+            </header>
+
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="view-section active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Jobs</h3>
+                        <p class="stat-value" id="stat-total-jobs">0</p>
+                    </div>
+                    <div class="stat-card success">
+                        <h3>Successful Transfers</h3>
+                        <p class="stat-value" id="stat-success">0</p>
+                    </div>
+                    <div class="stat-card warning">
+                        <h3>Duplicate Skips</h3>
+                        <p class="stat-value" id="stat-skipped">0</p>
+                    </div>
+                    <div class="stat-card danger">
+                        <h3>Failed Transfers</h3>
+                        <p class="stat-value" id="stat-failed">0</p>
+                    </div>
+                </div>
+
+                <div class="recent-transfers">
+                    <h3>Recent Transfers</h3>
+                    <div class="table-container">
+                        <table id="transfers-table">
+                            <thead>
+                                <tr>
+                                    <th>Job ID</th>
+                                    <th>File Name</th>
+                                    <th>Status</th>
+                                    <th>Execution Time</th>
+                                    <th>Source</th>
+                                    <th>Dest</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transfers-tbody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration View -->
+            <div id="view-config" class="view-section" style="display: none;">
+                <div class="config-header">
+                    <h3>Job Configuration</h3>
+                    <div class="config-actions">
+                        <button id="add-job-btn" class="btn accent"><span class="plus-icon">+</span> Add Job</button>
+                        <button id="save-config-btn" class="btn primary">Save &amp; Reload</button>
+                    </div>
+                </div>
+                <div id="jobs-list" class="jobs-list">
+                    <!-- Job cards rendered by JS -->
+                </div>
+                <div id="config-message" class="message-banner"></div>
+            </div>
+
+            <!-- Logs View -->
+            <div id="view-logs" class="view-section" style="display: none;">
+                <div class="config-header">
+                    <h3>System Logs</h3>
+                    <button id="refresh-logs-btn" class="btn outline">Refresh Logs</button>
+                </div>
+                <div class="logs-container">
+                    <pre id="logs-display">Loading logs...</pre>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>
