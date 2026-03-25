@@ -5,12 +5,13 @@ A modular, scheduler-driven data transfer platform built with Python. FileFlow a
 ## Features
 
 - **Multi-backend connectors** — Local filesystem, SFTP, AWS S3, SCP, HDFS
+- **Advanced Job Configuration** — Define standalone connection properties (Host, Port, User, Password) independently per job, enabling multiple distinct SFTP transfers
 - **Cron scheduling** — APScheduler with per-job cron expressions
 - **Processing pipeline** — Compress, decompress, and rename files in transit
 - **Deduplication** — SQLite-backed tracking to prevent duplicate transfers
-- **Backup & retention** — Configurable backup location with automatic cleanup
+- **Reliable backup & retention** — Configurable backup directories with automatic strict retention cleanup
 - **Transfer verification** — Size match, checksum, and existence checks
-- **Web dashboard** — Real-time monitoring UI with job configuration management
+- **Neumorphic Dashboard** — Responsive, clean 'Soft UI' realtime monitoring and config management interface
 - **REST API** — Health checks, transfer stats, job listing, and log streaming
 
 ## Architecture
@@ -33,6 +34,7 @@ A modular, scheduler-driven data transfer platform built with Python. FileFlow a
 │   └── main.py             # Application entrypoint
 ├── test_*.py               # Unit and integration tests
 ├── .env.example
+├── run.sh                  # Easy startup script
 ├── pyproject.toml
 ├── requirements.txt
 └── README.md
@@ -46,16 +48,17 @@ A modular, scheduler-driven data transfer platform built with Python. FileFlow a
 - Python 3.10+
 - pip
 
-### Installation
+### Installation & Startup
+
+The easiest way to get started is using the provided `run.sh` script, which automatically creates a virtual environment, installs all dependencies securely, and starts the server.
 
 ```bash
 git clone git@github.com:emoncse/fileflow.git
 cd fileflow
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-pip install -e .
+./run.sh
 ```
+
+This starts the scheduler and the API server on port `8000`. Open `http://localhost:8000` for the Neumorphic monitoring dashboard.
 
 ### Configuration
 
@@ -97,17 +100,9 @@ jobs:
       method: size_match
 ```
 
-### Running
+*(You can also configure jobs entirely from the Web Dashboard without touching YAML!)*
 
-```bash
-python src/fileflow_agent/main.py --config configs/jobs.yaml --port 8000
-```
-
-This starts the scheduler and the API server. Open `http://localhost:8000` for the monitoring dashboard.
-
-## Dashboard
-
-The built-in dashboard provides:
+The built-in Neumorphic web dashboard provides:
 
 | View | Description |
 |---|---|
