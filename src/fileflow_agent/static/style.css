@@ -1,7 +1,7 @@
 :root {
-    --bg-main: #e0e5ec;
-    --text-primary: #2d3748;
-    --text-secondary: #718096;
+    --bg-main: #f0f3f6;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
     
     --accent: #3b82f6;
     --accent-hover: #2563eb;
@@ -11,12 +11,11 @@
     
     --radius: 16px;
     
-    /* Neumorphic Shadows */
-    /* Light source top-left */
-    --shadow-outer: 9px 9px 16px rgb(163,177,198,0.6), -9px -9px 16px rgba(255,255,255, 0.5);
-    --shadow-outer-sm: 4px 4px 8px rgb(163,177,198,0.5), -4px -4px 8px rgba(255,255,255, 0.5);
-    --shadow-inner: inset 6px 6px 10px 0 rgba(163,177,198, 0.5), inset -6px -6px 10px 0 rgba(255,255,255,0.5);
-    --shadow-inner-sm: inset 3px 3px 6px 0 rgba(163,177,198, 0.5), inset -3px -3px 6px 0 rgba(255,255,255,0.5);
+    /* Neumorphic Shadows - Lighter for white background */
+    --shadow-outer: 8px 8px 16px rgba(163, 177, 198, 0.4), -8px -8px 16px rgba(255, 255, 255, 0.9);
+    --shadow-outer-sm: 4px 4px 8px rgba(163, 177, 198, 0.35), -4px -4px 8px rgba(255, 255, 255, 0.9);
+    --shadow-inner: inset 5px 5px 10px rgba(163, 177, 198, 0.4), inset -5px -5px 10px rgba(255, 255, 255, 0.9);
+    --shadow-inner-sm: inset 2px 2px 5px rgba(163, 177, 198, 0.4), inset -2px -2px 5px rgba(255, 255, 255, 0.9);
 }
 
 * {
