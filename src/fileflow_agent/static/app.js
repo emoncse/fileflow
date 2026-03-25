@@ -167,6 +167,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             <input type="text" data-field="source.config_ref" value="${job.source?.config_ref || ''}" placeholder="optional">
                         </div>
                     </div>
+                    <div class="field-row sftp-fields source-sftp-fields" style="margin-top: 10px; display: ${job.source?.type === 'sftp' ? 'flex' : 'none'};">
+                        <div class="field-group">
+                            <label>SFTP Host</label>
+                            <input type="text" data-field="source.connection.host" value="${job.source?.connection?.host || ''}" placeholder="sftp.example.com">
+                        </div>
+                        <div class="field-group">
+                            <label>Port</label>
+                            <input type="number" data-field="source.connection.port" value="${job.source?.connection?.port || 22}">
+                        </div>
+                        <div class="field-group">
+                            <label>Username</label>
+                            <input type="text" data-field="source.connection.username" value="${job.source?.connection?.username || ''}">
+                        </div>
+                        <div class="field-group">
+                            <label>Password</label>
+                            <input type="password" data-field="source.connection.password" value="${job.source?.connection?.password || ''}">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Destination -->
@@ -190,6 +208,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="field-group">
                             <label>Config Ref</label>
                             <input type="text" data-field="destination.config_ref" value="${job.destination?.config_ref || ''}" placeholder="optional">
+                        </div>
+                    </div>
+                    <div class="field-row sftp-fields dest-sftp-fields" style="margin-top: 10px; display: ${job.destination?.type === 'sftp' ? 'flex' : 'none'};">
+                        <div class="field-group">
+                            <label>SFTP Host</label>
+                            <input type="text" data-field="destination.connection.host" value="${job.destination?.connection?.host || ''}" placeholder="sftp.example.com">
+                        </div>
+                        <div class="field-group">
+                            <label>Port</label>
+                            <input type="number" data-field="destination.connection.port" value="${job.destination?.connection?.port || 22}">
+                        </div>
+                        <div class="field-group">
+                            <label>Username</label>
+                            <input type="text" data-field="destination.connection.username" value="${job.destination?.connection?.username || ''}">
+                        </div>
+                        <div class="field-group">
+                            <label>Password</label>
+                            <input type="password" data-field="destination.connection.password" value="${job.destination?.connection?.password || ''}">
                         </div>
                     </div>
                 </div>
@@ -255,6 +291,14 @@ document.addEventListener('DOMContentLoaded', () => {
             card.classList.toggle('expanded');
         });
 
+        // Toggle SFTP fields visibility based on Type
+        card.querySelector('select[data-field="source.type"]').addEventListener('change', (e) => {
+            card.querySelector('.source-sftp-fields').style.display = e.target.value === 'sftp' ? 'flex' : 'none';
+        });
+        card.querySelector('select[data-field="destination.type"]').addEventListener('change', (e) => {
+            card.querySelector('.dest-sftp-fields').style.display = e.target.value === 'sftp' ? 'flex' : 'none';
+        });
+
         // Delete button
         card.querySelector('.delete-job-btn').addEventListener('click', (e) => {
             e.stopPropagation();
@@ -302,12 +346,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     path: getValue('source.path'),
                     file_pattern: getValue('source.file_pattern') || null,
                     config_ref: getValue('source.config_ref') || null,
+                    connection: getValue('source.type') === 'sftp' ? {
+                        host: getValue('source.connection.host'),
+                        port: parseInt(getValue('source.connection.port')) || 22,
+                        username: getValue('source.connection.username'),
+                        password: getValue('source.connection.password')
+                    } : null
                 },
                 destination: {
                     type: getValue('destination.type'),
                     path: getValue('destination.path'),
                     bucket: getValue('destination.bucket') || null,
                     config_ref: getValue('destination.config_ref') || null,
+                    connection: getValue('destination.type') === 'sftp' ? {
+                        host: getValue('destination.connection.host'),
+                        port: parseInt(getValue('destination.connection.port')) || 22,
+                        username: getValue('destination.connection.username'),
+                        password: getValue('destination.connection.password')
+                    } : null
                 },
                 processing: {
                     enabled: getValue('processing.enabled'),
@@ -323,9 +379,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
             };
 
-            // Clean nulls from source/destination
+            // Clean nulls
             Object.keys(job.source).forEach(k => { if (job.source[k] === null) delete job.source[k]; });
             Object.keys(job.destination).forEach(k => { if (job.destination[k] === null) delete job.destination[k]; });
+            if (job.source.connection) {
+                Object.keys(job.source.connection).forEach(k => { if (!job.source.connection[k]) delete job.source.connection[k]; });
+                if (Object.keys(job.source.connection).length === 0) delete job.source.connection;
+            }
+            if (job.destination.connection) {
+                Object.keys(job.destination.connection).forEach(k => { if (!job.destination.connection[k]) delete job.destination.connection[k]; });
+                if (Object.keys(job.destination.connection).length === 0) delete job.destination.connection;
+            }
             if (!job.backup.location) delete job.backup.location;
             if (!job.backup.retention_days) delete job.backup.retention_days;
 
@@ -347,12 +411,26 @@ document.addEventListener('DOMContentLoaded', () => {
             yaml += `      path: ${job.source.path}\n`;
             if (job.source.file_pattern) yaml += `      file_pattern: "${job.source.file_pattern}"\n`;
             if (job.source.config_ref) yaml += `      config_ref: ${job.source.config_ref}\n`;
+            if (job.source.connection) {
+                yaml += `      connection:\n`;
+                if (job.source.connection.host) yaml += `        host: ${job.source.connection.host}\n`;
+                if (job.source.connection.port) yaml += `        port: ${job.source.connection.port}\n`;
+                if (job.source.connection.username) yaml += `        username: ${job.source.connection.username}\n`;
+                if (job.source.connection.password) yaml += `        password: "${job.source.connection.password}"\n`;
+            }
             yaml += `\n`;
             yaml += `    destination:\n`;
             yaml += `      type: ${job.destination.type}\n`;
             yaml += `      path: ${job.destination.path}\n`;
             if (job.destination.bucket) yaml += `      bucket: ${job.destination.bucket}\n`;
             if (job.destination.config_ref) yaml += `      config_ref: ${job.destination.config_ref}\n`;
+            if (job.destination.connection) {
+                yaml += `      connection:\n`;
+                if (job.destination.connection.host) yaml += `        host: ${job.destination.connection.host}\n`;
+                if (job.destination.connection.port) yaml += `        port: ${job.destination.connection.port}\n`;
+                if (job.destination.connection.username) yaml += `        username: ${job.destination.connection.username}\n`;
+                if (job.destination.connection.password) yaml += `        password: "${job.destination.connection.password}"\n`;
+            }
             yaml += `\n`;
             yaml += `    processing:\n`;
             yaml += `      enabled: ${job.processing.enabled}\n`;

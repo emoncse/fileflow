@@ -19,12 +19,14 @@ class SourceConfig(BaseModel):
     config_ref: Optional[str] = None
     path: str
     file_pattern: Optional[str] = None
+    connection: Optional[Dict[str, Any]] = None
 
 class DestinationConfig(BaseModel):
     type: ConnectorType
     config_ref: Optional[str] = None
     path: str
     bucket: Optional[str] = None
+    connection: Optional[Dict[str, Any]] = None
 
 class ProcessingConfig(BaseModel):
     enabled: bool = False

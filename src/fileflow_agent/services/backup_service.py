@@ -26,7 +26,7 @@ class BackupService:
             backup_path = os.path.join(backup_dir, filename)
             
             logger.info(f"Backing up {file_path} to {backup_path}")
-            shutil.copy2(file_path, backup_path)
+            shutil.copy(file_path, backup_path)
             return backup_path
         except Exception as e:
             logger.error(f"Failed to backup {file_path}: {e}")
