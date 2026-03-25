@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <input type="text" data-field="source.config_ref" value="${job.source?.config_ref || ''}" placeholder="optional">
                         </div>
                     </div>
-                    <div class="field-row sftp-fields source-sftp-fields" style="margin-top: 10px; display: ${job.source?.type === 'sftp' ? 'flex' : 'none'};">
+                    <div class="field-row sftp-fields source-sftp-fields" style="margin-top: 10px; display: ${job.source?.type === 'sftp' ? 'grid' : 'none'};">
                         <div class="field-group">
                             <label>SFTP Host</label>
                             <input type="text" data-field="source.connection.host" value="${job.source?.connection?.host || ''}" placeholder="sftp.example.com">
@@ -210,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <input type="text" data-field="destination.config_ref" value="${job.destination?.config_ref || ''}" placeholder="optional">
                         </div>
                     </div>
-                    <div class="field-row sftp-fields dest-sftp-fields" style="margin-top: 10px; display: ${job.destination?.type === 'sftp' ? 'flex' : 'none'};">
+                    <div class="field-row sftp-fields dest-sftp-fields" style="margin-top: 10px; display: ${job.destination?.type === 'sftp' ? 'grid' : 'none'};">
                         <div class="field-group">
                             <label>SFTP Host</label>
                             <input type="text" data-field="destination.connection.host" value="${job.destination?.connection?.host || ''}" placeholder="sftp.example.com">
@@ -293,10 +293,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Toggle SFTP fields visibility based on Type
         card.querySelector('select[data-field="source.type"]').addEventListener('change', (e) => {
-            card.querySelector('.source-sftp-fields').style.display = e.target.value === 'sftp' ? 'flex' : 'none';
+            card.querySelector('.source-sftp-fields').style.display = e.target.value === 'sftp' ? 'grid' : 'none';
         });
         card.querySelector('select[data-field="destination.type"]').addEventListener('change', (e) => {
-            card.querySelector('.dest-sftp-fields').style.display = e.target.value === 'sftp' ? 'flex' : 'none';
+            card.querySelector('.dest-sftp-fields').style.display = e.target.value === 'sftp' ? 'grid' : 'none';
         });
 
         // Delete button
