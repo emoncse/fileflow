@@ -159,8 +159,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <input type="text" data-field="source.path" value="${job.source?.path || ''}">
                         </div>
                         <div class="field-group">
-                            <label>File Pattern</label>
-                            <input type="text" data-field="source.file_pattern" value="${job.source?.file_pattern || ''}" placeholder="*.csv">
+                            <label title="Glob: *.csv | Regex: re:^report_\\d+\\.csv$">File Pattern</label>
+                            <input type="text" data-field="source.file_pattern" value="${job.source?.file_pattern || ''}" placeholder="*.csv  or  re:^report_\\d+\\.csv$" title="Glob pattern (e.g. *.csv) or regex with re: prefix (e.g. re:^report_\\d{4}\\.csv$)">
+                            <small style="color:var(--text-secondary);font-size:0.72rem;margin-top:3px;display:block;">Glob: <code>*.csv</code> &nbsp;|&nbsp; Regex: <code>re:^report_\\d+\\.log$</code></small>
                         </div>
                         <div class="field-group">
                             <label>Config Ref</label>

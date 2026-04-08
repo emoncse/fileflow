@@ -1,5 +1,5 @@
 import os
-import fnmatch
+from fileflow_agent.utils.pattern import match_pattern
 import stat
 from typing import List, Dict, Any, Optional, Tuple
 
@@ -82,7 +82,7 @@ class SFTPSourceConnector(SourceConnector):
                 if not stat.S_ISREG(entry.st_mode):
                     continue
                 name = entry.filename
-                if pattern and not fnmatch.fnmatch(name, pattern):
+                if not match_pattern(name, pattern):
                     continue
                 results.append({
                     'file_name': name,
