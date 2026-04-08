@@ -27,8 +27,13 @@ class TransferService:
         app_config = app_config or {}
 
         try:
-            source = ConnectorFactory.get_source_connector(job.source.type, app_config)
-            dest = ConnectorFactory.get_destination_connector(job.destination.type, app_config)
+            # Merge per-job connection details into the config so connectors
+            # (e.g. SFTP) can read host/port/username from self.config['connection'].
+            source_config = {**app_config, 'connection': (job.source.connection or {})}
+            dest_config = {**app_config, 'connection': (job.destination.connection or {})}
+
+            source = ConnectorFactory.get_source_connector(job.source.type, source_config)
+            dest = ConnectorFactory.get_destination_connector(job.destination.type, dest_config)
             
             files = source.list_files(job.source.path, job.source.file_pattern)
             
