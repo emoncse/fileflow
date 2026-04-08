@@ -1,27 +1,29 @@
 jobs:
-  - job_id: local_to_local_backup
+  - job_id: test_imran
     enabled: true
-    schedule: "*/5 * * * *"
+    schedule: "* * * * *"
 
     source:
       type: local
-      path: /tmp/fileflow_source
-      file_pattern: "*.csv"
+      path: /Users/imran/sftp_test
+      file_pattern: "*.txt"
 
     destination:
-      type: local
-      path: /tmp/fileflow_dest
+      type: sftp
+      path: /root/destination_sftp
+      connection:
+        host: 82.112.227.158
+        port: 22
+        username: root
+        password: "123456"
 
     processing:
       enabled: true
-      steps:
-        - compress
-        - rename
 
     backup:
       enabled: true
-      location: backups/local
-      retention_days: 30
+      location: /Users/imran/backup
+      retention_days: 2
 
     verification:
       method: size_match

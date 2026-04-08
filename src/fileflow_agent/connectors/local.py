@@ -1,6 +1,6 @@
 import os
 import shutil
-import fnmatch
+from fileflow_agent.utils.pattern import match_pattern
 from typing import List, Dict, Any, Optional
 from fileflow_agent.connectors.base import SourceConnector, DestinationConnector
 from fileflow_agent.logging.logger import get_logger
@@ -16,7 +16,7 @@ class LocalSourceConnector(SourceConnector):
             return files
             
         for file_name in os.listdir(path):
-            if pattern and not fnmatch.fnmatch(file_name, pattern):
+            if not match_pattern(file_name, pattern):
                 continue
             
             full_path = os.path.join(path, file_name)
