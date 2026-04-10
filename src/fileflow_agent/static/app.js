@@ -45,6 +45,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Maps raw DB status values to user-friendly display labels.
+    const STATUS_LABELS = {
+        success: 'Sent',
+        failed:  'Failed',
+        pending: 'Pending',
+        skipped: 'Skipped',
+    };
+
     function populateTransfersTable(transfers) {
         const tbody = document.getElementById('transfers-tbody');
         tbody.innerHTML = '';
@@ -56,11 +64,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             const truncSrc = t.source_path.length > 20 ? '...' + t.source_path.slice(-20) : t.source_path;
             const truncDest = t.destination_path.length > 20 ? '...' + t.destination_path.slice(-20) : t.destination_path;
-            const date = new Date(t.execution_time).toLocaleString();
+            // SQLite CURRENT_TIMESTAMP stores UTC without timezone info (no 'Z').
+            // Appending 'Z' tells JavaScript to parse it correctly as UTC,
+            // then toLocaleString() converts it to the browser's local timezone.
+            const utcString = t.execution_time.replace(' ', 'T') + 'Z';
+            const date = new Date(utcString).toLocaleString();
             tr.innerHTML = `
                 <td><strong>${t.job_id}</strong></td>
                 <td>${t.file_name}</td>
-                <td><span class="badge ${t.transfer_status}">${t.transfer_status}</span></td>
+                <td><span class="badge ${t.transfer_status}">${STATUS_LABELS[t.transfer_status] || t.transfer_status}</span></td>
                 <td style="color: var(--text-secondary); font-size: 0.875rem;">${date}</td>
                 <td><span style="border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">${t.source_type}</span> ${truncSrc}</td>
                 <td><span style="border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">${t.destination_type}</span> ${truncDest}</td>
