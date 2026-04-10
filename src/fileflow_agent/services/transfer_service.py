@@ -2,7 +2,7 @@ import os
 import tempfile
 from typing import Dict, Any
 from fileflow_agent.logging.logger import get_logger
-from fileflow_agent.config.models import JobDefinition
+from fileflow_agent.config.models import JobDefinition, ConnectorType
 from fileflow_agent.connectors.factory import ConnectorFactory
 from fileflow_agent.processing.pipeline import ProcessingPipeline
 from fileflow_agent.tracking.repository import TrackingRepository, TransferStatus, VerificationStatus
@@ -59,12 +59,18 @@ class TransferService:
         
         logger.info(f"Processing file: {file_name}")
         
+        # Pre-compute the expected destination path (based on original filename, before processing).
+        # Used for SKIPPED records where we never reach upload, and as the initial value for PENDING.
+        expected_dest_path = f"{job.destination.path.rstrip('/')}/{file_name}"
+        if job.destination.bucket:
+            expected_dest_path = f"s3://{job.destination.bucket}/{expected_dest_path.lstrip('/')}"
+
         # Check database for duplicate BEFORE doing heavy work (checksum might be None here)
         if self.repo.is_duplicate(job.job_id, file_name, file_size, None):
             logger.info(f"File {file_name} skipped as duplicate (size match)")
             self.repo.record_transfer(
                 job.job_id, job.source.type.value, remote_source_path,
-                job.destination.type.value, "skipped",
+                job.destination.type.value, expected_dest_path,
                 file_name, file_size, None, TransferStatus.SKIPPED
             )
             return
@@ -87,15 +93,16 @@ class TransferService:
                 logger.info(f"File {file_name} skipped as duplicate (checksum match)")
                 self.repo.record_transfer(
                     job.job_id, job.source.type.value, remote_source_path,
-                    job.destination.type.value, "skipped",
+                    job.destination.type.value, expected_dest_path,
                     file_name, file_size, checksum, TransferStatus.SKIPPED
                 )
                 return
 
-            # 2. Record Pending Transfer
+            # 2. Record Pending Transfer (dest path uses original filename as placeholder;
+            #    it will be updated to the real resolved path after upload in step 4).
             transfer_id = self.repo.record_transfer(
                 job.job_id, job.source.type.value, remote_source_path,
-                job.destination.type.value, "pending",
+                job.destination.type.value, expected_dest_path,
                 file_name, file_size, checksum, TransferStatus.PENDING
             )
 
@@ -115,13 +122,14 @@ class TransferService:
 
             # 4. Upload File
             try:
-                # Basic join logic
+                # Resolve final dest path (out_file_name may differ from file_name if processing renamed it)
                 remote_dest_path = f"{job.destination.path.rstrip('/')}/{out_file_name}"
                 if job.destination.bucket:
-                    # Specific to S3 syntax
                     remote_dest_path = f"s3://{job.destination.bucket}/{remote_dest_path.lstrip('/')}"
-                    
+
                 dest.upload_file(current_local_path, remote_dest_path)
+                # Update the record with the real resolved destination path.
+                self.repo.update_destination_path(transfer_id, remote_dest_path)
             except Exception as e:
                 logger.error(f"Upload failed for {file_name}: {e}")
                 self.repo.update_transfer_status(transfer_id, TransferStatus.FAILED, str(e))
@@ -145,15 +153,16 @@ class TransferService:
             self.repo.update_transfer_status(transfer_id, TransferStatus.SUCCESS)
 
             # 7. Backup and Retention
-            # After a successful upload+verification, move the local file (processed or raw)
-            # to the backup directory, then enforce the retention policy on that directory.
+            # For LOCAL sources: move the original source file to backup (archives it out of source dir).
+            # For remote sources (SFTP, S3, etc.): move the temp downloaded copy to backup
+            # (the remote original stays on the server; a separate delete step would be needed to remove it).
             if job.backup and job.backup.enabled:
                 try:
-                    # Use the processed file path (what was actually sent to destination).
-                    # BackupService.perform_backup() moves the file — not copies — so the
-                    # temp file is consumed here; temp-dir cleanup handles the rest.
-                    self.backup.perform_backup(current_local_path, job.job_id, job.backup)
+                    if job.source.type == ConnectorType.LOCAL:
+                        backup_file_path = remote_source_path   # original file on disk → gets moved out of source
+                    else:
+                        backup_file_path = local_download_path  # temp pre-processing copy for remote sources
+                    self.backup.perform_backup(backup_file_path, job.job_id, job.backup)
                     self.retention.apply_retention(job.job_id, job.backup)
                 except Exception as e:
                     logger.error(f"Backup/Retention failed for {file_name}: {e}")
-                    # Decide if this fails the whole job. Usually no, just log it.

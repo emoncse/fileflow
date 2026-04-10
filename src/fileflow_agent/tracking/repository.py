@@ -95,6 +95,14 @@ class TrackingRepository:
             cursor = conn.cursor()
             cursor.execute(query, (status, transfer_id))
             conn.commit()
+
+    def update_destination_path(self, transfer_id: int, destination_path: str):
+        """Update the resolved destination path after upload completes."""
+        query = "UPDATE transfers SET destination_path = ? WHERE id = ?"
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (destination_path, transfer_id))
+            conn.commit()
             
     def get_recent_transfers(self, limit: int = 50) -> List[Dict[str, Any]]:
         """Get recent transfer operations for the API."""
