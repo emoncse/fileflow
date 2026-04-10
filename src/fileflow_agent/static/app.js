@@ -1,4 +1,137 @@
+// ─── Auth Session ───────────────────────────────────────────────────────────
+
+const SESSION_KEY = 'fileflow_session';
+
+function getSession() {
+    try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)); } catch { return null; }
+}
+function saveSession(data) {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+}
+function clearSession() {
+    sessionStorage.removeItem(SESSION_KEY);
+}
+
+/** All API calls go through authFetch so the Bearer token is always sent. */
+async function authFetch(url, options = {}) {
+    const session = getSession();
+    if (session?.token) {
+        options.headers = { ...(options.headers || {}), Authorization: `Bearer ${session.token}` };
+    }
+    const res = await fetch(url, options);
+    if (res.status === 401) {
+        clearSession();
+        showLoginPage();
+        throw new Error('Session expired — please log in again');
+    }
+    return res;
+}
+
+function showLoginPage()    { document.getElementById('login-overlay').classList.remove('hidden'); }
+function hideLLoginPage()   { document.getElementById('login-overlay').classList.add('hidden'); }
+
+/** Disable all write controls for viewer role */
+function applyRole(role) {
+    if (role === 'admin') return;  // admin sees everything
+
+    // Hide Save + Add Job buttons
+    const saveBtn    = document.getElementById('save-config-btn');
+    const addJobBtn  = document.getElementById('add-job-btn');
+    if (saveBtn)   { saveBtn.style.display   = 'none'; }
+    if (addJobBtn) { addJobBtn.style.display = 'none'; }
+
+    // We'll also lock cards after they're rendered — see renderJobCards patch
+    document.body.setAttribute('data-role', 'viewer');
+}
+
+/** After job cards render, lock all inputs/buttons for viewers */
+function lockCardsForViewer() {
+    if (document.body.getAttribute('data-role') !== 'viewer') return;
+    document.querySelectorAll('.job-card input, .job-card select, .job-card textarea').forEach(el => {
+        el.setAttribute('readonly', 'true');
+        el.setAttribute('disabled', 'true');
+    });
+    document.querySelectorAll('.job-card .toggle, .job-card .step-pill, .job-card .delete-job-btn, .job-card .btn').forEach(el => {
+        el.setAttribute('disabled', 'true');
+        el.style.pointerEvents = 'none';
+        el.style.opacity = '0.5';
+    });
+}
+
+// ── Login form handler ───────────────────────────────────────────────────────
+
 document.addEventListener('DOMContentLoaded', () => {
+    const loginForm      = document.getElementById('login-form');
+    const loginError     = document.getElementById('login-error');
+    const userBadge      = document.getElementById('user-badge');
+    const userBadgeName  = document.getElementById('user-badge-name');
+    const userBadgeRole  = document.getElementById('user-badge-role');
+    const logoutBtn      = document.getElementById('logout-btn');
+
+    // Check existing session
+    const existingSession = getSession();
+    if (existingSession?.token) {
+        hideLLoginPage();
+        renderUserBadge(existingSession.username, existingSession.role);
+        applyRole(existingSession.role);
+    } else {
+        showLoginPage();
+    }
+
+    loginForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        loginError.textContent = '';
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value;
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+        submitBtn.textContent = 'Signing in…';
+        submitBtn.disabled = true;
+
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                loginError.textContent = data.detail || 'Login failed';
+                return;
+            }
+            saveSession({ token: data.token, username: data.username, role: data.role });
+            hideLLoginPage();
+            renderUserBadge(data.username, data.role);
+            applyRole(data.role);
+            // Trigger dashboard load
+            loadDashboardData();
+        } catch (err) {
+            loginError.textContent = 'Network error — server unreachable';
+        } finally {
+            submitBtn.textContent = 'Sign In';
+            submitBtn.disabled = false;
+        }
+    });
+
+    logoutBtn?.addEventListener('click', () => {
+        clearSession();
+        showLoginPage();
+        document.getElementById('login-username').value = '';
+        document.getElementById('login-password').value = '';
+        loginError.textContent = '';
+    });
+
+    function renderUserBadge(username, role) {
+        if (userBadge) userBadge.classList.remove('hidden');
+        const avatarEl = document.getElementById('user-avatar-initial');
+        if (avatarEl) avatarEl.textContent = username.charAt(0).toUpperCase();
+        if (userBadgeName) userBadgeName.textContent = username;
+        if (userBadgeRole) userBadgeRole.textContent = role === 'admin' ? '⚡ Admin' : '👁 Viewer';
+        if (userBadgeRole) userBadgeRole.style.color = role === 'admin' ? 'var(--accent)' : 'var(--warning)';
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+
 
     const navLinks = document.querySelectorAll('.nav-links li');
     const sections = document.querySelectorAll('.view-section');
@@ -30,14 +163,14 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadDashboardData() {
         if(document.getElementById('view-dashboard').style.display === 'none') return;
         try {
-            const res = await fetch('/stats/summary');
+            const res = await authFetch('/stats/summary');
             const data = await res.json();
             document.getElementById('stat-total-jobs').textContent = data.total_jobs.toLocaleString();
             document.getElementById('stat-success').textContent = data.successful_transfers.toLocaleString();
             document.getElementById('stat-skipped').textContent = data.duplicate_skips.toLocaleString();
             document.getElementById('stat-failed').textContent = data.failed_transfers.toLocaleString();
 
-            const transfersRes = await fetch('/transfers?limit=10');
+            const transfersRes = await authFetch('/transfers?limit=10');
             const transfersData = await transfersRes.json();
             populateTransfersTable(transfersData.transfers);
         } catch (e) {
@@ -62,8 +195,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         transfers.forEach(t => {
             const tr = document.createElement('tr');
-            const truncSrc = t.source_path.length > 20 ? '...' + t.source_path.slice(-20) : t.source_path;
-            const truncDest = t.destination_path.length > 20 ? '...' + t.destination_path.slice(-20) : t.destination_path;
+
+            // Show the filename portion of the path; fall back to last 25 chars for long paths.
+            // Full path shown in tooltip on hover.
+            const srcBasename = t.source_path.split('/').pop() || t.source_path;
+            const srcDisplay = srcBasename.length > 28 ? '...' + srcBasename.slice(-25) : srcBasename;
+
+            // For destination: if it's a real path, show basename. Otherwise show the raw value
+            // (e.g. for skipped records where we store the expected path).
+            const destIsPath = t.destination_path && t.destination_path.includes('/');
+            const destBasename = destIsPath ? t.destination_path.split('/').pop() : t.destination_path;
+            const destDisplay = (destBasename || t.destination_path || '—');
+
             // SQLite CURRENT_TIMESTAMP stores UTC without timezone info (no 'Z').
             // Appending 'Z' tells JavaScript to parse it correctly as UTC,
             // then toLocaleString() converts it to the browser's local timezone.
@@ -74,8 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${t.file_name}</td>
                 <td><span class="badge ${t.transfer_status}">${STATUS_LABELS[t.transfer_status] || t.transfer_status}</span></td>
                 <td style="color: var(--text-secondary); font-size: 0.875rem;">${date}</td>
-                <td><span style="border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">${t.source_type}</span> ${truncSrc}</td>
-                <td><span style="border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">${t.destination_type}</span> ${truncDest}</td>
+                <td title="${t.source_path}"><span style="border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">${t.source_type}</span> ${srcDisplay}</td>
+                <td title="${t.destination_path}"><span style="border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">${t.destination_type}</span> ${destDisplay}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -86,11 +229,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const connectorTypes = ['local', 'sftp', 's3', 'scp', 'hdfs'];
     const verificationMethods = ['size_match', 'file_exists', 'checksum_match'];
-    const processingSteps = ['compress', 'decompress', 'rename'];
+
+    // Processing step definitions: value sent to backend, label shown in UI, tooltip description.
+    const PROCESSING_STEPS = [
+        { value: 'compress',     label: 'GZ Compress',   desc: 'Compress file with gzip (.gz)' },
+        { value: 'decompress',   label: 'GZ Decompress', desc: 'Decompress a .gz gzip file' },
+        { value: 'zip',          label: 'ZIP Archive',   desc: 'Package file into a .zip archive' },
+        { value: 'compress_bz2', label: 'BZ2 Compress',  desc: 'Compress file with bzip2 (.bz2)' },
+        { value: 'rename',       label: 'Prefix Rename', desc: 'Prepend job-id prefix to filename' },
+        { value: 'timestamp',    label: 'Timestamp',     desc: 'Prepend YYYYMMDD_ date to filename' },
+        { value: 'bash_script',  label: '⚙️ Custom Script', desc: 'Paste a bash script — receives file path as $1' },
+    ];
 
     async function loadConfig() {
         try {
-            const res = await fetch('/jobs');
+            const res = await authFetch('/jobs');
             if (res.ok) {
                 const data = await res.json();
                 jobsData = data.jobs || [];
@@ -111,6 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
         jobsData.forEach((job, index) => {
             container.appendChild(createJobCard(job, index));
         });
+        lockCardsForViewer(); // disable controls if viewer role
     }
 
     function createJobCard(job, index) {
@@ -254,10 +408,32 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span style="font-size:0.8rem; color:var(--text-secondary);">${job.processing?.enabled ? 'Yes' : 'No'}</span>
                             </div>
                         </div>
-                        <div class="field-group">
-                            <label>Steps (comma-separated)</label>
-                            <input type="text" data-field="processing.steps" value="${(job.processing?.steps || []).join(', ')}" placeholder="compress, rename">
+                    </div>
+
+                    <div class="field-group" style="margin-top:16px;">
+                        <label>Pipeline Steps <span style="font-size:0.72rem;color:var(--text-secondary);font-weight:400;">&mdash; click to toggle, order matters</span></label>
+                        <div class="step-pill-selector"
+                             data-field="processing.steps"
+                             data-selected="${JSON.stringify((job.processing?.steps || []).filter(s => !s.startsWith('bash_script:')))}"
+                             data-bash-active="${(job.processing?.steps || []).some(s => s.startsWith('bash_script:'))}"
+                             data-bash-path="${(job.processing?.steps || []).find(s => s.startsWith('bash_script:'))?.replace('bash_script:', '') || ''}">
+                            ${PROCESSING_STEPS.map(s => `
+                                <button type="button" class="step-pill ${
+                                    s.value === 'bash_script'
+                                        ? (job.processing?.steps || []).some(st => st.startsWith('bash_script:')) ? 'active' : ''
+                                        : (job.processing?.steps || []).includes(s.value) ? 'active' : ''
+                                }" data-step="${s.value}" title="${s.desc}">${s.label}</button>
+                            `).join('')}
                         </div>
+                        <div class="step-order-preview"></div>
+                    </div>
+
+                    <!-- Script path: only shown when Custom Script is active -->
+                    <div class="bash-path-field field-group ${(job.processing?.steps || []).some(s => s.startsWith('bash_script:')) ? '' : 'hidden'}" style="margin-top:12px;">
+                        <label>Script Path <span style="font-size:0.72rem;color:var(--text-secondary);font-weight:400;">&mdash; absolute path &bull; <code>$1</code> = file &bull; print new path to stdout to chain</span></label>
+                        <input type="text" class="script-path-input"
+                            value="${(job.processing?.steps || []).find(s => s.startsWith('bash_script:'))?.replace('bash_script:', '') || ''}"
+                            placeholder="/path/to/my_script.sh">
                     </div>
                 </div>
 
@@ -331,6 +507,59 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        // Processing step pill selector
+        const pillSelector  = card.querySelector('.step-pill-selector');
+        const orderPreview  = card.querySelector('.step-order-preview');
+        const bashPathField = card.querySelector('.bash-path-field');
+        const scriptPathInput = card.querySelector('.script-path-input');
+
+        function syncPillState() {
+            const selected  = JSON.parse(pillSelector.dataset.selected || '[]');
+            const bashActive = pillSelector.dataset.bashActive === 'true';
+
+            pillSelector.querySelectorAll('.step-pill').forEach(pill => {
+                const isActive = pill.dataset.step === 'bash_script'
+                    ? bashActive
+                    : selected.includes(pill.dataset.step);
+                pill.classList.toggle('active', isActive);
+            });
+
+            // Show/hide script path input
+            if (bashPathField) bashPathField.classList.toggle('hidden', !bashActive);
+
+            // Order preview
+            const allSteps = [...selected, ...(bashActive ? ['bash_script'] : [])];
+            if (allSteps.length > 0) {
+                orderPreview.innerHTML = allSteps.map((s, i) =>
+                    `<span class="order-step">${i + 1}. <strong>${s === 'bash_script' ? '&#x2699;&#xFE0F;&nbsp;script' : s}</strong>${i < allSteps.length - 1 ? ' &rarr; ' : ''}</span>`
+                ).join('');
+            } else {
+                orderPreview.innerHTML = '<span class="order-step muted">No steps — file sent as-is</span>';
+            }
+        }
+
+        pillSelector.querySelectorAll('.step-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                const step = pill.dataset.step;
+                if (step === 'bash_script') {
+                    pillSelector.dataset.bashActive = String(pillSelector.dataset.bashActive !== 'true');
+                } else {
+                    let sel = JSON.parse(pillSelector.dataset.selected || '[]');
+                    sel = sel.includes(step) ? sel.filter(s => s !== step) : [...sel, step];
+                    pillSelector.dataset.selected = JSON.stringify(sel);
+                }
+                syncPillState();
+            });
+        });
+
+        // Live-sync bash path into data attribute
+        if (scriptPathInput) {
+            scriptPathInput.addEventListener('input', () => {
+                pillSelector.dataset.bashPath = scriptPathInput.value.trim();
+            });
+        }
+
+        syncPillState();
         return card;
     }
 
@@ -346,8 +575,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return el.value.trim();
             };
 
-            const stepsRaw = getValue('processing.steps');
-            const steps = stepsRaw ? stepsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+            // Steps: regular pills from data-selected + bash_script:path if active
+            const pillSel    = card.querySelector('[data-field="processing.steps"]');
+            const regularSteps = pillSel ? JSON.parse(pillSel.dataset.selected || '[]') : [];
+            const bashActive   = pillSel?.dataset.bashActive === 'true';
+            const bashPath     = card.querySelector('.script-path-input')?.value.trim() || '';
+            const steps = bashActive && bashPath
+                ? [...regularSteps, `bash_script:${bashPath}`]
+                : [...regularSteps];
             const retDays = getValue('backup.retention_days');
 
             const job = {
@@ -500,7 +735,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveBtn.disabled = true;
 
         try {
-            const res = await fetch('/api/config', {
+            const res = await authFetch('/api/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: yamlContent })
@@ -508,7 +743,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await res.json();
             if (res.ok) {
                 showMessage(result.message, 'success');
-                // Reload to reflect any adjustments
                 await loadConfig();
             } else {
                 showMessage(result.detail || 'Failed to save', 'error');
@@ -534,7 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadLogs() {
         if(document.getElementById('view-logs').style.display === 'none') return;
         try {
-            const res = await fetch('/logs/recent');
+            const res = await authFetch('/logs/recent');
             if(res.ok) {
                 const data = await res.json();
                 logsDisplay.textContent = data.logs.join('');
@@ -549,6 +783,6 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshLogsBtn.addEventListener('click', loadLogs);
     setInterval(loadLogs, 3000);
 
-    // Initial Load
-    loadDashboardData();
+    // Initial Load — deferred to after login if not yet authenticated
+    if (getSession()?.token) loadDashboardData();
 });

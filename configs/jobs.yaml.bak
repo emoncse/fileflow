@@ -18,7 +18,8 @@ jobs:
         password: "123456"
 
     processing:
-      enabled: false
+      enabled: true
+      steps: []
 
     backup:
       enabled: true
@@ -27,4 +28,3 @@ jobs:
 
     verification:
       method: size_match
-

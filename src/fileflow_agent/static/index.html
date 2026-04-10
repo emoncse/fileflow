@@ -8,6 +8,39 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+
+    <!-- ── Login Overlay ──────────────────────────────────────────────────── -->
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-card">
+            <div class="login-logo">
+                <div class="login-logo-icon">FF</div>
+                <div>
+                    <h1 class="login-title">FileFlow</h1>
+                    <p class="login-subtitle">Agent Dashboard</p>
+                </div>
+            </div>
+
+            <form id="login-form" autocomplete="off">
+                <div class="login-field">
+                    <label for="login-username">Username</label>
+                    <input id="login-username" type="text" placeholder="Enter username" autocomplete="username" required>
+                </div>
+                <div class="login-field">
+                    <label for="login-password">Password</label>
+                    <input id="login-password" type="password" placeholder="Enter password" autocomplete="current-password" required>
+                </div>
+                <p id="login-error" class="login-error"></p>
+                <button type="submit" class="login-btn">Sign In</button>
+            </form>
+
+            <p class="login-hint">
+                <span style="color:var(--accent);">⚡ Admin</span> — full access &nbsp;|&nbsp;
+                <span style="color:var(--warning);">👁 Viewer</span> — read-only
+            </p>
+        </div>
+    </div>
+
+    <!-- ── App Shell ──────────────────────────────────────────────────────── -->
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <nav class="sidebar">
@@ -35,9 +68,24 @@
         <main class="content">
             <header class="topbar">
                 <h2>Overview</h2>
-                <div class="status-indicator">
-                    <span class="dot pulse"></span>
-                    <span id="system-status">System Online</span>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <!-- User Badge -->
+                    <div id="user-badge" class="user-badge hidden">
+                        <div class="user-avatar" id="user-avatar-initial">U</div>
+                        <div class="user-info">
+                            <span id="user-badge-name" class="user-name">—</span>
+                            <span id="user-badge-role" class="user-role">—</span>
+                        </div>
+                    </div>
+                    <!-- Logout -->
+                    <button id="logout-btn" class="btn" title="Sign out" style="padding:0.5rem 1rem;font-size:0.82rem;">
+                        Sign Out
+                    </button>
+                    <!-- Status dot -->
+                    <div class="status-indicator">
+                        <span class="dot pulse"></span>
+                        <span id="system-status">Online</span>
+                    </div>
                 </div>
             </header>
 
