@@ -143,11 +143,16 @@ class TransferService:
 
             # 6. Mark Success
             self.repo.update_transfer_status(transfer_id, TransferStatus.SUCCESS)
-            
-            # 7. Backup and Retention (use the originally downloaded file if possible, or processed if replaced)
+
+            # 7. Backup and Retention
+            # After a successful upload+verification, move the local file (processed or raw)
+            # to the backup directory, then enforce the retention policy on that directory.
             if job.backup and job.backup.enabled:
                 try:
-                    self.backup.perform_backup(local_download_path, job.job_id, job.backup)
+                    # Use the processed file path (what was actually sent to destination).
+                    # BackupService.perform_backup() moves the file — not copies — so the
+                    # temp file is consumed here; temp-dir cleanup handles the rest.
+                    self.backup.perform_backup(current_local_path, job.job_id, job.backup)
                     self.retention.apply_retention(job.job_id, job.backup)
                 except Exception as e:
                     logger.error(f"Backup/Retention failed for {file_name}: {e}")

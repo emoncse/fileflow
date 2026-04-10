@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 from typing import Optional
 from fileflow_agent.logging.logger import get_logger
 from fileflow_agent.config.models import BackupConfig
@@ -25,8 +26,14 @@ class BackupService:
             filename = os.path.basename(file_path)
             backup_path = os.path.join(backup_dir, filename)
             
-            logger.info(f"Backing up {file_path} to {backup_path}")
-            shutil.copy(file_path, backup_path)
+            logger.info(f"Moving {file_path} to backup location {backup_path}")
+            shutil.move(file_path, backup_path)
+
+            # Stamp the backup file's mtime to now so that retention policy
+            # calculates age from the time of backup, not the original file timestamp.
+            now = time.time()
+            os.utime(backup_path, (now, now))
+            logger.info(f"Backup complete. Retention clock starts now for {backup_path}")
             return backup_path
         except Exception as e:
             logger.error(f"Failed to backup {file_path}: {e}")
