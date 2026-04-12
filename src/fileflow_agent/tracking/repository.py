@@ -6,10 +6,12 @@ from fileflow_agent.logging.logger import get_logger
 logger = get_logger("fileflow_agent.tracking.repository")
 
 class TransferStatus:
-    PENDING = "pending"
-    SUCCESS = "success"
-    FAILED = "failed"
-    SKIPPED = "skipped"
+    PENDING    = "pending"
+    SUCCESS    = "success"
+    FAILED     = "failed"
+    SKIPPED    = "skipped"
+    UPLOADED   = "uploaded"    # file reached destination; verification pending/failed
+    UNVERIFIED = "unverified"  # upload OK, but verification step could not confirm
 
 class VerificationStatus:
     PENDING = "pending"
@@ -57,28 +59,42 @@ class TrackingRepository:
             conn.commit()
             return cursor.lastrowid
 
-    def is_duplicate(self, job_id: str, file_name: str, file_size: int, checksum: Optional[str]) -> bool:
-        """Check if a file was already successfully transferred for this job."""
+    def is_duplicate(self, job_id: str, file_name: str, file_size: int, checksum) -> bool:
+        """
+        Check if this file has already been sent for this job.
+
+        We treat SUCCESS, UPLOADED, and UNVERIFIED all as "already sent" so that a
+        file which was physically transferred but whose verification failed does NOT
+        get re-uploaded on the next scheduler run.
+        """
+        SENT_STATUSES = (
+            TransferStatus.SUCCESS,
+            TransferStatus.UPLOADED,
+            TransferStatus.UNVERIFIED,
+        )
+        placeholders = ",".join("?" * len(SENT_STATUSES))
+
         if checksum:
-            query = """
-            SELECT 1 FROM transfers 
-            WHERE job_id = ? AND file_name = ? AND file_size = ? AND checksum = ? 
-            AND transfer_status = ? LIMIT 1
+            query = f"""
+            SELECT 1 FROM transfers
+            WHERE job_id = ? AND file_name = ? AND file_size = ? AND checksum = ?
+              AND transfer_status IN ({placeholders})
+            LIMIT 1
             """
-            params = (job_id, file_name, file_size, checksum, TransferStatus.SUCCESS)
+            params = (job_id, file_name, file_size, checksum, *SENT_STATUSES)
         else:
-            query = """
-            SELECT 1 FROM transfers 
-            WHERE job_id = ? AND file_name = ? AND file_size = ? 
-            AND transfer_status = ? LIMIT 1
+            query = f"""
+            SELECT 1 FROM transfers
+            WHERE job_id = ? AND file_name = ? AND file_size = ?
+              AND transfer_status IN ({placeholders})
+            LIMIT 1
             """
-            params = (job_id, file_name, file_size, TransferStatus.SUCCESS)
+            params = (job_id, file_name, file_size, *SENT_STATUSES)
 
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
-            result = cursor.fetchone()
-            return result is not None
+            return cursor.fetchone() is not None
 
     def update_transfer_status(self, transfer_id: int, status: str, failure_reason: Optional[str] = None):
         """Update transfer status and set failure reason if any."""

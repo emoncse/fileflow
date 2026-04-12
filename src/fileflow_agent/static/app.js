@@ -180,10 +180,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Maps raw DB status values to user-friendly display labels.
     const STATUS_LABELS = {
-        success: 'Sent',
-        failed:  'Failed',
-        pending: 'Pending',
-        skipped: 'Skipped',
+        success:    'Sent',
+        failed:     'Failed',
+        pending:    'Pending',
+        skipped:    'Skipped',
+        uploaded:   'Sent (Unverified)',
+        unverified: 'Sent (Unverified)',
     };
 
     function populateTransfersTable(transfers) {

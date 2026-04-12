@@ -460,10 +460,12 @@ tr:last-child td {
     box-shadow: var(--shadow-inner-sm);
 }
 
-.badge.success { color: var(--success); }
-.badge.failed { color: var(--danger); }
-.badge.skipped { color: var(--warning); }
-.badge.pending { color: var(--accent); }
+.badge.success    { color: var(--success); }
+.badge.failed     { color: var(--danger); }
+.badge.skipped    { color: var(--warning); }
+.badge.pending    { color: var(--accent); }
+.badge.uploaded   { color: #d97706; }  /* amber — sent but unverified */
+.badge.unverified { color: #d97706; }  /* amber — sent but unverified */
 
 /* Buttons & Inputs */
 .btn {
