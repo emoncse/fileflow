@@ -116,11 +116,9 @@
                         <button id="refresh-transfers-btn" class="btn" title="Refresh">↻ Refresh</button>
                     </div>
 
-                    <!-- Filter Bar: Row 1 — text search + status + actions -->
+                    <!-- Filter Bar -->
                     <div class="filter-bar field-section">
-                        <p class="field-section-title">Filter Transfers</p>
-
-                        <!-- Row 1: Job ID, File Name, Status, Buttons -->
+                        <!-- Row 1: Job ID | File Name | Status -->
                         <div class="filter-row filter-row-1">
                             <div class="field-group">
                                 <label for="filter-job-id">Job ID</label>
@@ -141,13 +139,9 @@
                                     <option value="skipped">Skipped</option>
                                 </select>
                             </div>
-                            <div class="filter-actions">
-                                <button id="filter-search-btn" class="btn primary">🔍 Search</button>
-                                <button id="filter-clear-btn" class="btn">✕ Clear</button>
-                            </div>
                         </div>
 
-                        <!-- Row 2: Source, Destination, Date range -->
+                        <!-- Row 2: Source Type | Destination Type | From Date | To Date -->
                         <div class="filter-row filter-row-2">
                             <div class="field-group">
                                 <label for="filter-source-type">Source Type</label>
@@ -179,6 +173,12 @@
                                 <label for="filter-date-to">To Date</label>
                                 <input id="filter-date-to" type="date">
                             </div>
+                        </div>
+                        
+                        <!-- Actions Row -->
+                        <div class="filter-actions-row">
+                            <button id="filter-clear-btn" class="btn">✕ Clear</button>
+                            <button id="filter-search-btn" class="btn primary">🔍 Search</button>
                         </div>
                     </div>
 
