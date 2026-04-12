@@ -116,16 +116,19 @@
                         <button id="refresh-transfers-btn" class="btn" title="Refresh">↻ Refresh</button>
                     </div>
 
-                    <!-- Filter Bar -->
+                    <!-- Filter Bar: Row 1 — text search + status + actions -->
                     <div class="filter-bar field-section">
-                        <div class="filter-row">
+                        <p class="field-section-title">Filter Transfers</p>
+
+                        <!-- Row 1: Job ID, File Name, Status, Buttons -->
+                        <div class="filter-row filter-row-1">
                             <div class="field-group">
                                 <label for="filter-job-id">Job ID</label>
-                                <input id="filter-job-id" type="text" placeholder="Search job…">
+                                <input id="filter-job-id" type="text" placeholder="e.g. test_imran">
                             </div>
                             <div class="field-group">
                                 <label for="filter-file-name">File Name</label>
-                                <input id="filter-file-name" type="text" placeholder="Search file…">
+                                <input id="filter-file-name" type="text" placeholder="e.g. report.xlsx">
                             </div>
                             <div class="field-group">
                                 <label for="filter-status">Status</label>
@@ -138,8 +141,16 @@
                                     <option value="skipped">Skipped</option>
                                 </select>
                             </div>
+                            <div class="filter-actions">
+                                <button id="filter-search-btn" class="btn primary">🔍 Search</button>
+                                <button id="filter-clear-btn" class="btn">✕ Clear</button>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Source, Destination, Date range -->
+                        <div class="filter-row filter-row-2">
                             <div class="field-group">
-                                <label for="filter-source-type">Source</label>
+                                <label for="filter-source-type">Source Type</label>
                                 <select id="filter-source-type">
                                     <option value="">All Sources</option>
                                     <option value="local">Local</option>
@@ -150,7 +161,7 @@
                                 </select>
                             </div>
                             <div class="field-group">
-                                <label for="filter-dest-type">Destination</label>
+                                <label for="filter-dest-type">Destination Type</label>
                                 <select id="filter-dest-type">
                                     <option value="">All Destinations</option>
                                     <option value="local">Local</option>
@@ -168,10 +179,6 @@
                                 <label for="filter-date-to">To Date</label>
                                 <input id="filter-date-to" type="date">
                             </div>
-                        </div>
-                        <div class="filter-actions">
-                            <button id="filter-search-btn" class="btn primary">🔍 Search</button>
-                            <button id="filter-clear-btn" class="btn">✕ Clear</button>
                         </div>
                     </div>
 

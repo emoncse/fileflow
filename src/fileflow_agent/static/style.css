@@ -914,6 +914,19 @@ pre#logs-display {
     .view-section {
         padding: 1rem;
     }
+
+    /* Filter: single column on phones */
+    .filter-row-1,
+    .filter-row-2 {
+        grid-template-columns: 1fr;
+    }
+    .filter-actions {
+        flex-direction: row;
+        justify-content: stretch;
+    }
+    .filter-actions .btn {
+        flex: 1;
+    }
 }
 
 /* ── Filter Bar ──────────────────────────────────────────────────────────── */
@@ -922,17 +935,29 @@ pre#logs-display {
     margin-bottom: 1.5rem;
 }
 
-.filter-row {
+/* Row 1: Job ID (grow) · File Name (grow) · Status (fixed) · Buttons */
+.filter-row-1 {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: 1fr 1fr 200px auto;
     gap: 1rem;
+    align-items: end;        /* align bottoms: labels+inputs + buttons flush */
     margin-bottom: 1rem;
 }
 
+/* Row 2: Source · Destination · From Date · To Date */
+.filter-row-2 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    align-items: end;
+}
+
+/* Buttons group inside row 1 */
 .filter-actions {
     display: flex;
-    gap: 0.75rem;
-    justify-content: flex-end;
+    gap: 0.6rem;
+    align-items: flex-end;
+    padding-bottom: 2px;    /* fine-tune flush with input bottom border */
 }
 
 /* ── Pagination ──────────────────────────────────────────────────────────── */
