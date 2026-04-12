@@ -158,26 +158,145 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-    setInterval(loadDashboardData, 5000);
+    // ── Transfers: filter state & pagination ─────────────────────────────────
+    let transferPage    = 1;
+    const PAGE_SIZE     = 20;
+    let totalPages      = 1;
+
+    function getFilters() {
+        return {
+            job_id:      document.getElementById('filter-job-id')?.value.trim()       || '',
+            file_name:   document.getElementById('filter-file-name')?.value.trim()    || '',
+            status:      document.getElementById('filter-status')?.value              || '',
+            source_type: document.getElementById('filter-source-type')?.value         || '',
+            dest_type:   document.getElementById('filter-dest-type')?.value           || '',
+            date_from:   document.getElementById('filter-date-from')?.value           || '',
+            date_to:     document.getElementById('filter-date-to')?.value             || '',
+        };
+    }
+
+    async function loadTransfers(page = 1) {
+        transferPage = page;
+        const f = getFilters();
+        const params = new URLSearchParams({ page, page_size: PAGE_SIZE });
+        if (f.job_id)      params.set('job_id',      f.job_id);
+        if (f.file_name)   params.set('file_name',   f.file_name);
+        if (f.status)      params.set('status',      f.status);
+        if (f.source_type) params.set('source_type', f.source_type);
+        if (f.dest_type)   params.set('dest_type',   f.dest_type);
+        if (f.date_from)   params.set('date_from',   f.date_from);
+        if (f.date_to)     params.set('date_to',     f.date_to);
+
+        try {
+            const res  = await authFetch(`/transfers?${params}`);
+            const data = await res.json();
+            totalPages = data.pages || 1;
+            populateTransfersTable(data.transfers || []);
+            renderPagination(data.page, data.pages, data.total, data.page_size);
+        } catch(e) {
+            console.error('Failed to load transfers', e);
+        }
+    }
+
+    function renderPagination(page, pages, total, pageSize) {
+        const info      = document.getElementById('pagination-info');
+        const numbers   = document.getElementById('page-numbers');
+        const prevBtn   = document.getElementById('page-prev');
+        const nextBtn   = document.getElementById('page-next');
+        if (!info) return;
+
+        const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+        const to   = Math.min(page * pageSize, total);
+        info.textContent = total === 0
+            ? 'No records found'
+            : `Showing ${from}–${to} of ${total} record${total !== 1 ? 's' : ''}`;
+
+        prevBtn.disabled = page <= 1;
+        nextBtn.disabled = page >= pages;
+
+        // Build page number buttons (show up to 7 slots with ellipsis)
+        numbers.innerHTML = '';
+        const makeBtn = (n) => {
+            const b = document.createElement('button');
+            b.className = 'page-num-btn' + (n === page ? ' active' : '');
+            b.textContent = n;
+            b.addEventListener('click', () => loadTransfers(n));
+            return b;
+        };
+        const ellipsis = () => {
+            const s = document.createElement('span');
+            s.className = 'page-ellipsis';
+            s.textContent = '…';
+            return s;
+        };
+
+        if (pages <= 7) {
+            for (let i = 1; i <= pages; i++) numbers.appendChild(makeBtn(i));
+        } else {
+            numbers.appendChild(makeBtn(1));
+            if (page > 3) numbers.appendChild(ellipsis());
+            const start = Math.max(2, page - 1);
+            const end   = Math.min(pages - 1, page + 1);
+            for (let i = start; i <= end; i++) numbers.appendChild(makeBtn(i));
+            if (page < pages - 2) numbers.appendChild(ellipsis());
+            numbers.appendChild(makeBtn(pages));
+        }
+    }
+
+    // ── Stats-only auto-refresh (transfers have their own refresh) ────────────
+    setInterval(async () => {
+        if(document.getElementById('view-dashboard').style.display === 'none') return;
+        try {
+            const res  = await authFetch('/stats/summary');
+            const data = await res.json();
+            document.getElementById('stat-total-jobs').textContent = data.total_jobs.toLocaleString();
+            document.getElementById('stat-success').textContent    = data.successful_transfers.toLocaleString();
+            document.getElementById('stat-skipped').textContent    = data.duplicate_skips.toLocaleString();
+            document.getElementById('stat-failed').textContent     = data.failed_transfers.toLocaleString();
+        } catch(e) { /* silent */ }
+    }, 5000);
+
+    // Transfers auto-refresh (respects current filters & page)
+    setInterval(() => {
+        if(document.getElementById('view-dashboard').style.display !== 'none') loadTransfers(transferPage);
+    }, 15000);
 
     async function loadDashboardData() {
         if(document.getElementById('view-dashboard').style.display === 'none') return;
         try {
-            const res = await authFetch('/stats/summary');
+            const res  = await authFetch('/stats/summary');
             const data = await res.json();
             document.getElementById('stat-total-jobs').textContent = data.total_jobs.toLocaleString();
-            document.getElementById('stat-success').textContent = data.successful_transfers.toLocaleString();
-            document.getElementById('stat-skipped').textContent = data.duplicate_skips.toLocaleString();
-            document.getElementById('stat-failed').textContent = data.failed_transfers.toLocaleString();
-
-            const transfersRes = await authFetch('/transfers?limit=10');
-            const transfersData = await transfersRes.json();
-            populateTransfersTable(transfersData.transfers);
-        } catch (e) {
-            console.error("Failed to load dashboard data", e);
+            document.getElementById('stat-success').textContent    = data.successful_transfers.toLocaleString();
+            document.getElementById('stat-skipped').textContent    = data.duplicate_skips.toLocaleString();
+            document.getElementById('stat-failed').textContent     = data.failed_transfers.toLocaleString();
+        } catch(e) {
+            console.error('Failed to load dashboard stats', e);
         }
+        loadTransfers(1);
     }
 
+    // Filter controls
+    document.getElementById('filter-search-btn')?.addEventListener('click', () => loadTransfers(1));
+    document.getElementById('filter-clear-btn')?.addEventListener('click', () => {
+        ['filter-job-id','filter-file-name','filter-status',
+         'filter-source-type','filter-dest-type','filter-date-from','filter-date-to']
+            .forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+        loadTransfers(1);
+    });
+    ['filter-job-id','filter-file-name'].forEach(id => {
+        document.getElementById(id)?.addEventListener('keydown', e => {
+            if (e.key === 'Enter') loadTransfers(1);
+        });
+    });
+    document.getElementById('refresh-transfers-btn')?.addEventListener('click', () => loadTransfers(transferPage));
+    document.getElementById('page-prev')?.addEventListener('click', () => loadTransfers(transferPage - 1));
+    document.getElementById('page-next')?.addEventListener('click', () => loadTransfers(transferPage + 1));
+
+    // ── Status label map ──────────────────────────────────────────────────────
     // Maps raw DB status values to user-friendly display labels.
     const STATUS_LABELS = {
         success:    'Sent',
@@ -192,26 +311,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const tbody = document.getElementById('transfers-tbody');
         tbody.innerHTML = '';
         if (transfers.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No transfers recorded yet</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No records match your filters</td></tr>';
             return;
         }
         transfers.forEach(t => {
             const tr = document.createElement('tr');
 
-            // Show the filename portion of the path; fall back to last 25 chars for long paths.
-            // Full path shown in tooltip on hover.
             const srcBasename = t.source_path.split('/').pop() || t.source_path;
-            const srcDisplay = srcBasename.length > 28 ? '...' + srcBasename.slice(-25) : srcBasename;
+            const srcDisplay  = srcBasename.length > 28 ? '...' + srcBasename.slice(-25) : srcBasename;
 
-            // For destination: if it's a real path, show basename. Otherwise show the raw value
-            // (e.g. for skipped records where we store the expected path).
-            const destIsPath = t.destination_path && t.destination_path.includes('/');
+            const destIsPath  = t.destination_path && t.destination_path.includes('/');
             const destBasename = destIsPath ? t.destination_path.split('/').pop() : t.destination_path;
-            const destDisplay = (destBasename || t.destination_path || '—');
+            const destDisplay  = destBasename || t.destination_path || '—';
 
-            // SQLite CURRENT_TIMESTAMP stores UTC without timezone info (no 'Z').
-            // Appending 'Z' tells JavaScript to parse it correctly as UTC,
-            // then toLocaleString() converts it to the browser's local timezone.
             const utcString = t.execution_time.replace(' ', 'T') + 'Z';
             const date = new Date(utcString).toLocaleString();
             tr.innerHTML = `

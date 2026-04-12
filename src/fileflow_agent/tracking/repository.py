@@ -120,14 +120,68 @@ class TrackingRepository:
             cursor.execute(query, (destination_path, transfer_id))
             conn.commit()
             
-    def get_recent_transfers(self, limit: int = 50) -> List[Dict[str, Any]]:
-        """Get recent transfer operations for the API."""
-        query = "SELECT * FROM transfers ORDER BY execution_time DESC LIMIT ?"
+    def get_recent_transfers(
+        self,
+        limit: int = 20,
+        offset: int = 0,
+        job_id: str = None,
+        file_name: str = None,
+        status: str = None,
+        date_from: str = None,
+        date_to: str = None,
+        source_type: str = None,
+        dest_type: str = None,
+    ) -> dict:
+        """Filterable, paginated query. Returns {transfers, total, page, page_size, pages}."""
+        conditions: list[str] = []
+        params: list = []
+
+        if job_id:
+            conditions.append("job_id LIKE ?")
+            params.append(f"%{job_id}%")
+        if file_name:
+            conditions.append("file_name LIKE ?")
+            params.append(f"%{file_name}%")
+        if status:
+            conditions.append("transfer_status = ?")
+            params.append(status)
+        if date_from:
+            conditions.append("execution_time >= ?")
+            params.append(f"{date_from} 00:00:00")
+        if date_to:
+            conditions.append("execution_time <= ?")
+            params.append(f"{date_to} 23:59:59")
+        if source_type:
+            conditions.append("source_type = ?")
+            params.append(source_type)
+        if dest_type:
+            conditions.append("destination_type = ?")
+            params.append(dest_type)
+
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
+        count_query = f"SELECT COUNT(*) AS total FROM transfers {where}"
+        data_query  = f"SELECT * FROM transfers {where} ORDER BY execution_time DESC LIMIT ? OFFSET ?"
+
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(query, (limit,))
+
+            cursor.execute(count_query, params)
+            total: int = cursor.fetchone()["total"]
+
+            cursor.execute(data_query, [*params, limit, offset])
             rows = cursor.fetchall()
-            return [dict(row) for row in rows]
+
+        page = (offset // limit) + 1
+        pages = max(1, (total + limit - 1) // limit)
+
+        return {
+            "transfers": [dict(r) for r in rows],
+            "total":     total,
+            "page":      page,
+            "page_size": limit,
+            "pages":     pages,
+        }
             
     def get_stats(self) -> Dict[str, int]:
         """Get summary stats for the API."""
