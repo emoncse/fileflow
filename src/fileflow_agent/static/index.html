@@ -111,7 +111,78 @@
                 </div>
 
                 <div class="recent-transfers">
-                    <h3>Recent Transfers</h3>
+                    <div class="transfers-header">
+                        <h3>Recent Transfers</h3>
+                        <button id="refresh-transfers-btn" class="btn" title="Refresh">↻ Refresh</button>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="filter-bar field-section">
+                        <!-- Row 1: Job ID | File Name | Status -->
+                        <div class="filter-row filter-row-1">
+                            <div class="field-group">
+                                <label for="filter-job-id">Job ID</label>
+                                <input id="filter-job-id" type="text" placeholder="e.g. test_imran">
+                            </div>
+                            <div class="field-group">
+                                <label for="filter-file-name">File Name</label>
+                                <input id="filter-file-name" type="text" placeholder="e.g. report.xlsx">
+                            </div>
+                            <div class="field-group">
+                                <label for="filter-status">Status</label>
+                                <select id="filter-status">
+                                    <option value="">All Statuses</option>
+                                    <option value="success">Sent</option>
+                                    <option value="unverified">Sent (Unverified)</option>
+                                    <option value="failed">Failed</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="skipped">Skipped</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Source Type | Destination Type | From Date | To Date -->
+                        <div class="filter-row filter-row-2">
+                            <div class="field-group">
+                                <label for="filter-source-type">Source Type</label>
+                                <select id="filter-source-type">
+                                    <option value="">All Sources</option>
+                                    <option value="local">Local</option>
+                                    <option value="sftp">SFTP</option>
+                                    <option value="s3">S3</option>
+                                    <option value="scp">SCP</option>
+                                    <option value="hdfs">HDFS</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label for="filter-dest-type">Destination Type</label>
+                                <select id="filter-dest-type">
+                                    <option value="">All Destinations</option>
+                                    <option value="local">Local</option>
+                                    <option value="sftp">SFTP</option>
+                                    <option value="s3">S3</option>
+                                    <option value="scp">SCP</option>
+                                    <option value="hdfs">HDFS</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label for="filter-date-from">From Date</label>
+                                <input id="filter-date-from" type="date">
+                            </div>
+                            <div class="field-group">
+                                <label for="filter-date-to">To Date</label>
+                                <input id="filter-date-to" type="date">
+                            </div>
+                        </div>
+                        
+                        <!-- Actions Row -->
+                        <div class="filter-actions-row">
+                            <button id="filter-clear-btn" class="btn">✕ Clear</button>
+                            <button id="filter-search-btn" class="btn primary">🔍 Search</button>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
                     <div class="table-container">
                         <table id="transfers-table">
                             <thead>
@@ -128,6 +199,16 @@
                                 <!-- Populated by JS -->
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination-bar" id="pagination-bar">
+                        <span class="pagination-info" id="pagination-info"></span>
+                        <div class="pagination-controls">
+                            <button class="btn pagination-btn" id="page-prev">← Prev</button>
+                            <div id="page-numbers" class="page-numbers"></div>
+                            <button class="btn pagination-btn" id="page-next">Next →</button>
+                        </div>
                     </div>
                 </div>
             </div>

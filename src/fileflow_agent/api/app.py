@@ -75,9 +75,30 @@ def get_jobs(user: dict = Depends(get_current_user)):
     return {"jobs": [job.model_dump() for job in config.jobs]}
 
 @app.get("/transfers")
-def get_recent_transfers(limit: int = 50, user: dict = Depends(get_current_user)):
-    transfers = repo.get_recent_transfers(limit=limit)
-    return {"transfers": transfers}
+def get_recent_transfers(
+    page: int = 1,
+    page_size: int = 20,
+    job_id: str = None,
+    file_name: str = None,
+    status: str = None,
+    date_from: str = None,
+    date_to: str = None,
+    source_type: str = None,
+    dest_type: str = None,
+    user: dict = Depends(get_current_user),
+):
+    offset = (page - 1) * page_size
+    return repo.get_recent_transfers(
+        limit=page_size,
+        offset=offset,
+        job_id=job_id,
+        file_name=file_name,
+        status=status,
+        date_from=date_from,
+        date_to=date_to,
+        source_type=source_type,
+        dest_type=dest_type,
+    )
 
 @app.get("/stats/summary")
 def get_stats_summary(user: dict = Depends(get_current_user)):

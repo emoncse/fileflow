@@ -130,6 +130,9 @@ class TransferService:
                 dest.upload_file(current_local_path, remote_dest_path)
                 # Update the record with the real resolved destination path.
                 self.repo.update_destination_path(transfer_id, remote_dest_path)
+                # Mark as UPLOADED immediately — file is physically on destination.
+                # This prevents re-upload if verification fails (UNVERIFIED != FAILED).
+                self.repo.update_transfer_status(transfer_id, TransferStatus.UPLOADED)
             except Exception as e:
                 logger.error(f"Upload failed for {file_name}: {e}")
                 self.repo.update_transfer_status(transfer_id, TransferStatus.FAILED, str(e))
@@ -144,10 +147,16 @@ class TransferService:
                     raise ValueError("Verification step returned False")
                 self.repo.update_verification_status(transfer_id, VerificationStatus.SUCCESS)
             except Exception as e:
-                logger.error(f"Verification failed for {file_name}: {e}")
-                self.repo.update_transfer_status(transfer_id, TransferStatus.FAILED, f"Verification failed: {e}")
+                logger.warning(
+                    f"Verification could not confirm {file_name} on destination: {e}. "
+                    f"File was physically uploaded (status=UNVERIFIED) — will NOT re-upload."
+                )
+                # UNVERIFIED = uploaded but not confirmed. is_duplicate() treats this as sent.
+                self.repo.update_transfer_status(
+                    transfer_id, TransferStatus.UNVERIFIED, f"Verification failed: {e}"
+                )
                 self.repo.update_verification_status(transfer_id, VerificationStatus.FAILED)
-                return
+                # Still proceed to backup — the file was transferred.
 
             # 6. Mark Success
             self.repo.update_transfer_status(transfer_id, TransferStatus.SUCCESS)

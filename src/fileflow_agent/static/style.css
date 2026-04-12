@@ -413,6 +413,14 @@ body {
 .stat-card.danger .stat-value { color: var(--danger); }
 
 /* Table */
+/* ── Transfers header row ────────────────────────────────────────────────── */
+.transfers-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
 .recent-transfers h3 {
     margin-bottom: 1.5rem;
     font-weight: 700;
@@ -460,10 +468,12 @@ tr:last-child td {
     box-shadow: var(--shadow-inner-sm);
 }
 
-.badge.success { color: var(--success); }
-.badge.failed { color: var(--danger); }
-.badge.skipped { color: var(--warning); }
-.badge.pending { color: var(--accent); }
+.badge.success    { color: var(--success); }
+.badge.failed     { color: var(--danger); }
+.badge.skipped    { color: var(--warning); }
+.badge.pending    { color: var(--accent); }
+.badge.uploaded   { color: #d97706; }  /* amber — sent but unverified */
+.badge.unverified { color: #d97706; }  /* amber — sent but unverified */
 
 /* Buttons & Inputs */
 .btn {
@@ -904,4 +914,125 @@ pre#logs-display {
     .view-section {
         padding: 1rem;
     }
+
+    /* Filter: single column on phones */
+    .filter-row-1,
+    .filter-row-2 {
+        grid-template-columns: 1fr;
+    }
+    .filter-actions-row {
+        flex-direction: row;
+        justify-content: stretch;
+    }
+    .filter-actions-row .btn {
+        flex: 1;
+    }
+}
+
+/* ── Filter Bar ──────────────────────────────────────────────────────────── */
+
+.filter-bar {
+    margin-bottom: 1.5rem;
+}
+
+/* Row 1: Job ID (grow) · File Name (grow) · Status (grow) */
+.filter-row-1 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    align-items: end;
+    margin-bottom: 1rem;
+}
+
+/* Row 2: Source · Destination · From Date · To Date */
+.filter-row-2 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    align-items: end;
+    margin-bottom: 1.2rem;
+}
+
+/* Actions Row at bottom */
+.filter-actions-row {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: flex-end;
+}
+
+/* ── Pagination ──────────────────────────────────────────────────────────── */
+
+.pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.pagination-info {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pagination-btn {
+    padding: 0.5rem 0.9rem;
+    font-size: 0.82rem;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.35;
+    pointer-events: none;
+    box-shadow: var(--shadow-inner-sm);
+}
+
+.page-numbers {
+    display: flex;
+    gap: 4px;
+}
+
+.page-num-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: none;
+    background-color: var(--bg-main);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-outer-sm);
+    transition: box-shadow 0.18s ease, color 0.18s ease;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-num-btn:hover:not(.active) {
+    color: var(--accent);
+}
+
+.page-num-btn.active {
+    color: var(--accent);
+    font-weight: 700;
+    box-shadow: var(--shadow-inner-sm);
+}
+
+.page-ellipsis {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
 }

@@ -147,20 +147,49 @@ class SFTPDestinationConnector(DestinationConnector):
             ssh.close()
 
     def verify_file(self, remote_path: str, expected_size: int, expected_checksum: Optional[str] = None) -> bool:
+        """Verify the uploaded file exists (and optionally matches expected size).
+
+        Retries up to 3 times with a 2-second sleep between attempts to handle
+        SFTP server timing / NFS-cache delays where the file isn't immediately
+        visible on a fresh connection right after upload.
+        """
+        import time
         conn = self.config.get('connection', {})
         host = conn.get('host', 'unknown_host')
-        ssh, sftp = _create_sftp_connection(conn)
-        try:
-            attr = sftp.stat(remote_path)
-            match = attr.st_size == expected_size
-            logger.debug(f"Verify {host}:{remote_path} — expected={expected_size}, actual={attr.st_size}, match={match}")
-            return match
-        except FileNotFoundError:
-            logger.warning(f"Verify failed: {remote_path} not found on {host}")
-            return False
-        finally:
-            sftp.close()
-            ssh.close()
+
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            ssh, sftp = _create_sftp_connection(conn)
+            try:
+                attr = sftp.stat(remote_path)
+                # expected_size == -1 means file_exists mode — just confirm presence
+                if expected_size == -1:
+                    logger.info(f"Verify EXISTS {host}:{remote_path} — OK (attempt {attempt})")
+                    return True
+                match = attr.st_size == expected_size
+                logger.debug(
+                    f"Verify {host}:{remote_path} — expected={expected_size}, "
+                    f"actual={attr.st_size}, match={match} (attempt {attempt})"
+                )
+                return match
+            except FileNotFoundError:
+                if attempt < max_attempts:
+                    logger.warning(
+                        f"Verify attempt {attempt}/{max_attempts}: {remote_path} not yet visible on "
+                        f"{host} — retrying in 2s…"
+                    )
+                    time.sleep(2)
+                else:
+                    logger.warning(
+                        f"Verify failed after {max_attempts} attempts: "
+                        f"{remote_path} not found on {host}"
+                    )
+                    return False
+            finally:
+                sftp.close()
+                ssh.close()
+
+        return False  # unreachable, but satisfies type checker
 
 
 def _ensure_remote_dir(sftp: paramiko.SFTPClient, path: str) -> None:
