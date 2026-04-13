@@ -17,6 +17,15 @@ dependencies = [
     "hdfs"
 ]
 
+[project.scripts]
+fileflow = "fileflow_agent.cli:main"
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"fileflow_agent" = ["static/*", "static/**/*"]

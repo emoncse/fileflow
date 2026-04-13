@@ -46,29 +46,37 @@ A modular, scheduler-driven data transfer platform built with Python. FileFlow a
 ### Prerequisites
 
 - Python 3.10+
-- pip
+- `pip`
 
-### Installation & Startup
+### Installation & Workspace Setup
 
-The easiest way to get started is using the provided `run.sh` script, which automatically creates a virtual environment, installs all dependencies securely, and starts the server.
+FileFlow Agent is designed as a standalone global Pip library. When you install it, it gives your system a new command-line tool `fileflow`.
 
 ```bash
-git clone git@github.com:emoncse/fileflow.git
-cd fileflow
-./run.sh
+# 1. Install via Pip (In a virtual environment or globally)
+pip install fileflow-agent
+
+# 2. Initialize a secure Workspace
+# This creates localized databases, configuration templates, and log directories.
+fileflow init ~/my_fileflow_workspace
+
+# 3. Start the Agent from the configured workspace
+fileflow start ~/my_fileflow_workspace --port 8000
 ```
 
-This starts the scheduler and the API server on port `8000`. Open `http://localhost:8000` for the Neumorphic monitoring dashboard.
+Once running, open `http://localhost:8000` to access the Neumorphic monitoring dashboard.
 
 ### Configuration
 
-1. Copy and edit the environment file:
+The `fileflow init` command will automatically scaffold a `.env` and `configs/jobs.yaml` in your chosen workspace directory.
 
-```bash
-cp .env.example .env
-```
+1. **Environment Config (`~/my_fileflow_workspace/.env`)**
+   Set your UI authentication credentials and global AWS/SFTP master keys if needed.
 
-2. Define jobs in `configs/jobs.yaml`:
+2. **Job Config (`~/my_fileflow_workspace/configs/jobs.yaml`)**
+   *(You can edit this file manually, or configure jobs entirely from the Web Dashboard without touching YAML!)*
+
+This is what a YAML job definition looks like:
 
 ```yaml
 jobs:
@@ -139,6 +147,26 @@ class MySourceConnector(SourceConnector):
     def get_metadata(self, remote_path):
         ...
 ```
+
+## Publishing to PyPI
+
+If you are a maintainer, you can package and release new versions to the official Python Package Index (PyPI).
+
+1. Update the `version = "X.Y.Z"` string inside `pyproject.toml`.
+2. Ensure you have the build tools installed:
+   ```bash
+   pip install build twine
+   ```
+3. Remove old build artifacts and generate the new Wheel (`.whl`) and Source Tarball (`.tar.gz`):
+   ```bash
+   rm -rf build dist src/*.egg-info
+   python -m build
+   ```
+4. Upload the built packages to PyPI securely using Twine:
+   ```bash
+   twine upload dist/*
+   ```
+   *(You will be prompted for your PyPI API token, which should be prefixed with `pypi-`)*
 
 ## Contributing
 
