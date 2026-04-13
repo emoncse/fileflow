@@ -1,3 +1,4 @@
+import os
 import yaml
 import json
 from pathlib import Path
@@ -18,7 +19,9 @@ class AppSettings(BaseSettings):
     hdfs_port: int = 9000
     
     log_level: str = "INFO"
-    sqlite_db_path: str = "data/tracking.db"
+    
+    # Internal variables pointing to workspace relatives
+    _workspace: str = ""
     
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -26,10 +29,24 @@ class AppSettings(BaseSettings):
         extra="ignore"
     )
 
-def load_settings() -> AppSettings:
-    return AppSettings()
+    @property
+    def workspace(self) -> str:
+        return os.environ.get("FILEFLOW_WORKSPACE", os.getcwd())
 
-def load_jobs_config(file_path: str | Path) -> JobConfigFile:
+    @property
+    def sqlite_db_path(self) -> str:
+        return os.path.join(self.workspace, "data", "tracking.db")
+
+def load_settings() -> AppSettings:
+    ws = os.environ.get("FILEFLOW_WORKSPACE", os.getcwd())
+    env_path = os.path.join(ws, ".env")
+    return AppSettings(_env_file=env_path)
+
+def load_jobs_config(file_path: str | Path = None) -> JobConfigFile:
+    if file_path is None:
+        ws = os.environ.get("FILEFLOW_WORKSPACE", os.getcwd())
+        file_path = os.path.join(ws, "configs", "jobs.yaml")
+        
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"Jobs config file not found: {path}")
@@ -42,5 +59,4 @@ def load_jobs_config(file_path: str | Path) -> JobConfigFile:
         else:
             raise ValueError(f"Unsupported config file extension: {path.suffix}")
 
-    # Validate and parse
     return JobConfigFile.model_validate(data)

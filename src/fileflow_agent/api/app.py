@@ -29,9 +29,8 @@ def set_scheduler(scheduler):
     _scheduler = scheduler
 
 def get_jobs_config():
-    config_path = os.environ.get("FILEFLOW_JOBS_CONFIG", "configs/jobs.yaml")
     try:
-        return load_jobs_config(config_path)
+        return load_jobs_config()
     except FileNotFoundError:
         return None
     except Exception as e:
@@ -107,7 +106,8 @@ def get_stats_summary(user: dict = Depends(get_current_user)):
 
 @app.get("/logs/recent")
 def get_recent_logs(lines: int = 100, user: dict = Depends(get_current_user)):
-    log_file = "logs/fileflow.log"
+    ws = os.environ.get("FILEFLOW_WORKSPACE", ".")
+    log_file = os.path.join(ws, "logs", "fileflow.log")
     if not os.path.exists(log_file):
         return {"logs": []}
     try:
@@ -119,7 +119,8 @@ def get_recent_logs(lines: int = 100, user: dict = Depends(get_current_user)):
 
 @app.get("/api/config")
 def get_config_raw(user: dict = Depends(get_current_user)):
-    config_path = os.environ.get("FILEFLOW_JOBS_CONFIG", "configs/jobs.yaml")
+    ws = os.environ.get("FILEFLOW_WORKSPACE", ".")
+    config_path = os.path.join(ws, "configs", "jobs.yaml")
     if not os.path.exists(config_path):
         raise HTTPException(status_code=404, detail="Config file not found")
     with open(config_path, "r") as f:
@@ -128,7 +129,8 @@ def get_config_raw(user: dict = Depends(get_current_user)):
 @app.get("/api/scripts/{job_id}")
 def get_script(job_id: str, user: dict = Depends(get_current_user)):
     """Return the inline bash script content for a job (if any)."""
-    script_path = Path("configs/scripts") / f"{job_id}.sh"
+    ws = Path(os.environ.get("FILEFLOW_WORKSPACE", "."))
+    script_path = ws / "configs" / "scripts" / f"{job_id}.sh"
     if not script_path.exists():
         return {"content": "", "path": ""}
     try:
@@ -146,7 +148,8 @@ async def save_config_raw(request: Request, user: dict = Depends(require_admin))
     if not content or not content.strip():
         raise HTTPException(status_code=400, detail="Missing or empty 'content'")
 
-    config_path = os.environ.get("FILEFLOW_JOBS_CONFIG", "configs/jobs.yaml")
+    ws = os.environ.get("FILEFLOW_WORKSPACE", ".")
+    config_path = os.path.join(ws, "configs", "jobs.yaml")
     backup_path = config_path + ".bak"
 
     # Step 1: Validate YAML syntax
@@ -210,7 +213,8 @@ async def save_script(job_id: str, request: Request, user: dict = Depends(requir
     if not content:
         raise HTTPException(status_code=400, detail="Script content is empty")
 
-    scripts_dir = Path("configs/scripts")
+    ws = Path(os.environ.get("FILEFLOW_WORKSPACE", "."))
+    scripts_dir = ws / "configs" / "scripts"
     scripts_dir.mkdir(parents=True, exist_ok=True)
 
     script_path = scripts_dir / f"{job_id}.sh"

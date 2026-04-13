@@ -26,8 +26,10 @@ def get_logger(name: str) -> logging.Logger:
     logger.addHandler(console_handler)
 
     # File Handler
-    log_dir = Path("logs")
-    log_dir.mkdir(exist_ok=True)
+    import os
+    ws = Path(os.environ.get("FILEFLOW_WORKSPACE", "."))
+    log_dir = ws / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
     
     file_handler = RotatingFileHandler(
         filename=log_dir / "fileflow.log",

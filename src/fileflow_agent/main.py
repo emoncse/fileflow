@@ -11,16 +11,14 @@ from fileflow_agent.scheduler.scheduler import JobScheduler
 logger = get_logger("fileflow_agent.main")
 
 
-def start_agent(jobs_config_path: str, host: str = "0.0.0.0", port: int = 8000):
-    os.environ["FILEFLOW_JOBS_CONFIG"] = jobs_config_path
-
+def start_agent(host: str = "0.0.0.0", port: int = 8000):
     settings = load_settings()
     logger.info(f"Starting FileFlow Agent. Log Level: {settings.log_level}")
 
     init_db()
 
     try:
-        jobs_config = load_jobs_config(jobs_config_path)
+        jobs_config = load_jobs_config()
     except Exception as e:
         logger.error(f"Failed to load jobs config: {e}")
         sys.exit(1)
@@ -47,12 +45,12 @@ def start_agent(jobs_config_path: str, host: str = "0.0.0.0", port: int = 8000):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="FileFlow Agent")
-    parser.add_argument(
-        "--config", type=str, default="configs/jobs.yaml",
-        help="Path to jobs configuration file",
-    )
     parser.add_argument("--host", type=str, default="0.0.0.0", help="API host")
     parser.add_argument("--port", type=int, default=8000, help="API port")
 
     args = parser.parse_args()
-    start_agent(args.config, args.host, args.port)
+    
+    if "FILEFLOW_WORKSPACE" not in os.environ:
+        os.environ["FILEFLOW_WORKSPACE"] = os.getcwd()
+        
+    start_agent(args.host, args.port)
