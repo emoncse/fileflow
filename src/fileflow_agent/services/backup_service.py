@@ -27,13 +27,25 @@ class BackupService:
             backup_path = os.path.join(backup_dir, filename)
             
             logger.info(f"Moving {file_path} to backup location {backup_path}")
-            shutil.move(file_path, backup_path)
+            
+            try:
+                # Use shutil.copy as copy_function to avoid copying stat (ownership) 
+                # which causes EPERM on many NFS/CIFS mounts.
+                shutil.move(file_path, backup_path, copy_function=shutil.copy)
+            except Exception as move_e:
+                logger.warning(f"Standard move failed ({move_e}), falling back to copyfile + remove.")
+                shutil.copyfile(file_path, backup_path)
+                os.remove(file_path)
 
             # Stamp the backup file's mtime to now so that retention policy
             # calculates age from the time of backup, not the original file timestamp.
-            now = time.time()
-            os.utime(backup_path, (now, now))
-            logger.info(f"Backup complete. Retention clock starts now for {backup_path}")
+            try:
+                now = time.time()
+                os.utime(backup_path, (now, now))
+                logger.info(f"Backup complete. Retention clock starts now for {backup_path}")
+            except Exception as utime_e:
+                logger.warning(f"Backup succeeded, but could not update timestamp for {backup_path}: {utime_e}")
+                
             return backup_path
         except Exception as e:
             logger.error(f"Failed to backup {file_path}: {e}")
