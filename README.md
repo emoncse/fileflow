@@ -148,26 +148,6 @@ class MySourceConnector(SourceConnector):
         ...
 ```
 
-## Publishing to PyPI
-
-If you are a maintainer, you can package and release new versions to the official Python Package Index (PyPI).
-
-1. Update the `version = "X.Y.Z"` string inside `pyproject.toml`.
-2. Ensure you have the build tools installed:
-   ```bash
-   pip install build twine
-   ```
-3. Remove old build artifacts and generate the new Wheel (`.whl`) and Source Tarball (`.tar.gz`):
-   ```bash
-   rm -rf build dist src/*.egg-info
-   python -m build
-   ```
-4. Upload the built packages to PyPI securely using Twine:
-   ```bash
-   twine upload dist/*
-   ```
-   *(You will be prompted for your PyPI API token, which should be prefixed with `pypi-`)*
-
 ## Contributing
 
 Contributions are welcome. Please open an issue first to discuss what you'd like to change.
