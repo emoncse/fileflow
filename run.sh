@@ -24,9 +24,9 @@ echo "Installing dependencies..."
 "$PYTHON_BIN" -m pip install -e .
 
 echo "----------------------------------------"
-echo "Starting FileFlow Agent on port 8000..."
-echo "Dashboard: http://localhost:8000"
+echo "Starting FileFlow Agent on port 7345..."
+echo "Dashboard: http://localhost:7345"
 echo "----------------------------------------"
 
 # Run the application
-"$PYTHON_BIN" src/fileflow_agent/main.py --config configs/jobs.yaml --port 8000
+"$PYTHON_BIN" src/fileflow_agent/main.py --port 7345

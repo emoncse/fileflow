@@ -61,10 +61,10 @@ pip install fileflow-agent
 fileflow init ~/my_fileflow_workspace
 
 # 3. Start the Agent from the configured workspace
-fileflow start ~/my_fileflow_workspace --port 8000
+fileflow start ~/my_fileflow_workspace --port 7345
 ```
 
-Once running, open `http://localhost:8000` to access the Neumorphic monitoring dashboard.
+Once running, open `http://localhost:7345` to access the Neumorphic monitoring dashboard.
 
 ### Configuration
 
