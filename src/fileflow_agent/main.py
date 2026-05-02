@@ -11,7 +11,7 @@ from fileflow_agent.scheduler.scheduler import JobScheduler
 logger = get_logger("fileflow_agent.main")
 
 
-def start_agent(host: str = "0.0.0.0", port: int = 8000):
+def start_agent(host: str = "0.0.0.0", port: int = 7345):
     settings = load_settings()
     logger.info(f"Starting FileFlow Agent. Log Level: {settings.log_level}")
 
@@ -46,7 +46,7 @@ def start_agent(host: str = "0.0.0.0", port: int = 8000):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="FileFlow Agent")
     parser.add_argument("--host", type=str, default="0.0.0.0", help="API host")
-    parser.add_argument("--port", type=int, default=8000, help="API port")
+    parser.add_argument("--port", type=int, default=7345, help="API port")
 
     args = parser.parse_args()
     

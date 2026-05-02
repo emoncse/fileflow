@@ -466,6 +466,46 @@ document.addEventListener('DOMContentLoaded', () => {
                             <input type="password" data-field="source.connection.password" value="${job.source?.connection?.password || ''}">
                         </div>
                     </div>
+                    <div class="field-row hdfs-fields source-hdfs-fields" style="margin-top: 10px; display: ${job.source?.type === 'hdfs' ? 'grid' : 'none'};">
+                        <div style="grid-column: 1 / -1; padding: 10px 12px; background: var(--bg-main); box-shadow: var(--shadow-inner-sm); border-radius: 8px; font-size: 0.78rem; color: var(--text-secondary);">
+                            <strong style="color: var(--text-primary); display:block; margin-bottom:6px;">Equivalent curl (download)</strong>
+                            <code style="display:block; white-space:pre-wrap; word-break:break-all; font-family:monospace; color:var(--text-primary);">curl -L -k --negotiate -u : -X GET "&lt;namenode&gt;/webhdfs/v1&lt;path&gt;/&lt;file&gt;?op=OPEN" -o &lt;local-file&gt;</code>
+                            <details style="margin-top:8px;">
+                                <summary style="cursor:pointer; color:var(--accent);">What each flag means &amp; how to configure it</summary>
+                                <ul style="margin:8px 0 0 18px; padding:0; line-height:1.6;">
+                                    <li><code>-L</code> &mdash; follow the 307 redirect from namenode to datanode (handled automatically)</li>
+                                    <li><code>-k</code> &mdash; skip TLS certificate verification &rarr; set <strong>Verify SSL = No</strong></li>
+                                    <li><code>--negotiate -u :</code> &mdash; SPNEGO/Kerberos using the <code>kinit</code> ticket cache &rarr; set <strong>Kerberos = Yes</strong></li>
+                                    <li><code>op=OPEN</code> &mdash; WebHDFS read operation (used by source connector when listing/downloading)</li>
+                                    <li><code>&lt;namenode&gt;</code> &rarr; <strong>Namenode URL</strong> field below (e.g. <code>https://st-c01r01-m03.bigdata.domain_example.com:9871</code>)</li>
+                                    <li><code>&lt;path&gt;</code> &rarr; <strong>Path</strong> field in the Source header (e.g. <code>/external/nextapp/eventlog</code>)</li>
+                                    <li>Non-Kerberos clusters: turn <strong>Kerberos = No</strong> and put a username in <strong>User</strong> &mdash; this appends <code>?user.name=&lt;user&gt;</code></li>
+                                </ul>
+                            </details>
+                        </div>
+                        <div class="field-group">
+                            <label>Namenode URL</label>
+                            <input type="text" data-field="source.connection.namenode" value="${job.source?.connection?.namenode || ''}" placeholder="https://nn.example.com:9871">
+                        </div>
+                        <div class="field-group">
+                            <label title="curl --negotiate -u :  uses the kinit ticket cache">Kerberos</label>
+                            <div class="toggle-container">
+                                <button class="toggle ${job.source?.connection?.kerberos !== false ? 'active' : ''}" data-field="source.connection.kerberos"></button>
+                                <span style="font-size:0.8rem; color:var(--text-secondary);">${job.source?.connection?.kerberos !== false ? 'Yes' : 'No'}</span>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label title="Off matches curl -k (skip TLS verify)">Verify SSL</label>
+                            <div class="toggle-container">
+                                <button class="toggle ${job.source?.connection?.verify_ssl ? 'active' : ''}" data-field="source.connection.verify_ssl"></button>
+                                <span style="font-size:0.8rem; color:var(--text-secondary);">${job.source?.connection?.verify_ssl ? 'Yes' : 'No'}</span>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label>User <small style="color:var(--text-secondary);font-weight:400;">(non-Kerberos)</small></label>
+                            <input type="text" data-field="source.connection.user" value="${job.source?.connection?.user || ''}" placeholder="optional">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Destination -->
@@ -507,6 +547,60 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="field-group">
                             <label>Password</label>
                             <input type="password" data-field="destination.connection.password" value="${job.destination?.connection?.password || ''}">
+                        </div>
+                    </div>
+                    <div class="field-row hdfs-fields dest-hdfs-fields" style="margin-top: 10px; display: ${job.destination?.type === 'hdfs' ? 'grid' : 'none'};">
+                        <div style="grid-column: 1 / -1; padding: 10px 12px; background: var(--bg-main); box-shadow: var(--shadow-inner-sm); border-radius: 8px; font-size: 0.78rem; color: var(--text-secondary);">
+                            <strong style="color: var(--text-primary); display:block; margin-bottom:6px;">Equivalent curl (upload)</strong>
+                            <code style="display:block; white-space:pre-wrap; word-break:break-all; font-family:monospace; color:var(--text-primary);">curl -L -k --negotiate -u : -X PUT -T &lt;local-file&gt; "&lt;namenode&gt;/webhdfs/v1&lt;path&gt;/&lt;file&gt;?op=CREATE&amp;overwrite=true"</code>
+                            <details style="margin-top:8px;">
+                                <summary style="cursor:pointer; color:var(--accent);">What each flag means &amp; how to configure it</summary>
+                                <ul style="margin:8px 0 0 18px; padding:0; line-height:1.6;">
+                                    <li><code>-L</code> &mdash; follow the namenode's 307 redirect to the datanode. The connector does this as a two-step PUT (namenode &rarr; datanode), nothing to configure.</li>
+                                    <li><code>-k</code> &mdash; skip TLS certificate verification (insecure) &rarr; set <strong>Verify SSL = No</strong></li>
+                                    <li><code>--negotiate -u :</code> &mdash; SPNEGO/Kerberos auth using the ambient <code>kinit</code> ticket; the empty <code>:</code> means &ldquo;no explicit principal&rdquo; &rarr; set <strong>Kerberos = Yes</strong>. Run <code>kinit</code> on the host before the job fires.</li>
+                                    <li><code>-X PUT -T &lt;local-file&gt;</code> &mdash; upload the local file as the request body. The local file comes from the <strong>Source</strong> section.</li>
+                                    <li><code>op=CREATE</code> &mdash; WebHDFS write operation (always used for uploads)</li>
+                                    <li><code>overwrite=true</code> &mdash; replace existing file at the destination &rarr; set <strong>Overwrite = Yes</strong> (turn off to fail if the file already exists)</li>
+                                    <li><code>&lt;namenode&gt;</code> &rarr; <strong>Namenode URL</strong> field below (e.g. <code>https://st-c01r01-m03.bigdata.domain_example.com:9871</code>)</li>
+                                    <li><code>&lt;path&gt;</code> &rarr; <strong>Path</strong> field above in the Destination header (e.g. <code>/external/nextapp/eventlog</code>) &mdash; the connector calls <code>MKDIRS</code> first to ensure the parent exists</li>
+                                    <li>Non-Kerberos clusters: turn <strong>Kerberos = No</strong> and put a username in <strong>User</strong> &mdash; this appends <code>?user.name=&lt;user&gt;</code> to every WebHDFS request</li>
+                                </ul>
+                                <div style="margin-top:8px; padding-top:8px; border-top: 1px solid rgba(0,0,0,0.08);">
+                                    <strong style="color:var(--text-primary);">Worked example:</strong> the curl
+                                    <code style="display:block; margin-top:4px; white-space:pre-wrap; word-break:break-all;">curl -L -k --negotiate -u : -X PUT -T /var/tmp/test-1.txt "https://st-c01r01-m03.bigdata.domain_example.com:9871/webhdfs/v1/external/nextapp/eventlog/test.txt?op=CREATE&amp;overwrite=true"</code>
+                                    becomes: Source = local <code>/var/tmp</code> + pattern <code>test-*.txt</code>; Destination Path = <code>/external/nextapp/eventlog</code>; Namenode URL = <code>https://st-c01r01-m03.bigdata.domain_example.com:9871</code>; Kerberos = Yes; Verify SSL = No; Overwrite = Yes.
+                                </div>
+                            </details>
+                        </div>
+                        <div class="field-group">
+                            <label>Namenode URL</label>
+                            <input type="text" data-field="destination.connection.namenode" value="${job.destination?.connection?.namenode || ''}" placeholder="https://nn.example.com:9871">
+                        </div>
+                        <div class="field-group">
+                            <label title="curl --negotiate -u :  uses the kinit ticket cache">Kerberos</label>
+                            <div class="toggle-container">
+                                <button class="toggle ${job.destination?.connection?.kerberos !== false ? 'active' : ''}" data-field="destination.connection.kerberos"></button>
+                                <span style="font-size:0.8rem; color:var(--text-secondary);">${job.destination?.connection?.kerberos !== false ? 'Yes' : 'No'}</span>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label title="Off matches curl -k (skip TLS verify)">Verify SSL</label>
+                            <div class="toggle-container">
+                                <button class="toggle ${job.destination?.connection?.verify_ssl ? 'active' : ''}" data-field="destination.connection.verify_ssl"></button>
+                                <span style="font-size:0.8rem; color:var(--text-secondary);">${job.destination?.connection?.verify_ssl ? 'Yes' : 'No'}</span>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label title="op=CREATE&overwrite=true">Overwrite</label>
+                            <div class="toggle-container">
+                                <button class="toggle ${job.destination?.connection?.overwrite !== false ? 'active' : ''}" data-field="destination.connection.overwrite"></button>
+                                <span style="font-size:0.8rem; color:var(--text-secondary);">${job.destination?.connection?.overwrite !== false ? 'Yes' : 'No'}</span>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label>User <small style="color:var(--text-secondary);font-weight:400;">(non-Kerberos)</small></label>
+                            <input type="text" data-field="destination.connection.user" value="${job.destination?.connection?.user || ''}" placeholder="optional">
                         </div>
                     </div>
                 </div>
@@ -594,12 +688,14 @@ document.addEventListener('DOMContentLoaded', () => {
             card.classList.toggle('expanded');
         });
 
-        // Toggle SFTP fields visibility based on Type
+        // Toggle SFTP / HDFS fields visibility based on Type
         card.querySelector('select[data-field="source.type"]').addEventListener('change', (e) => {
             card.querySelector('.source-sftp-fields').style.display = e.target.value === 'sftp' ? 'grid' : 'none';
+            card.querySelector('.source-hdfs-fields').style.display = e.target.value === 'hdfs' ? 'grid' : 'none';
         });
         card.querySelector('select[data-field="destination.type"]').addEventListener('change', (e) => {
             card.querySelector('.dest-sftp-fields').style.display = e.target.value === 'sftp' ? 'grid' : 'none';
+            card.querySelector('.dest-hdfs-fields').style.display = e.target.value === 'hdfs' ? 'grid' : 'none';
         });
 
         // Delete button
@@ -699,33 +795,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 : [...regularSteps];
             const retDays = getValue('backup.retention_days');
 
+            const sourceType = getValue('source.type');
+            const destType   = getValue('destination.type');
+            const sourceConn = sourceType === 'sftp' ? {
+                    host: getValue('source.connection.host'),
+                    port: parseInt(getValue('source.connection.port')) || 22,
+                    username: getValue('source.connection.username'),
+                    password: getValue('source.connection.password')
+                } : sourceType === 'hdfs' ? {
+                    namenode: getValue('source.connection.namenode'),
+                    kerberos: getValue('source.connection.kerberos'),
+                    verify_ssl: getValue('source.connection.verify_ssl'),
+                    user: getValue('source.connection.user'),
+                } : null;
+            const destConn = destType === 'sftp' ? {
+                    host: getValue('destination.connection.host'),
+                    port: parseInt(getValue('destination.connection.port')) || 22,
+                    username: getValue('destination.connection.username'),
+                    password: getValue('destination.connection.password')
+                } : destType === 'hdfs' ? {
+                    namenode: getValue('destination.connection.namenode'),
+                    kerberos: getValue('destination.connection.kerberos'),
+                    verify_ssl: getValue('destination.connection.verify_ssl'),
+                    overwrite: getValue('destination.connection.overwrite'),
+                    user: getValue('destination.connection.user'),
+                } : null;
+
             const job = {
                 job_id: getValue('job_id'),
                 enabled: getValue('enabled'),
                 schedule: getValue('schedule'),
                 source: {
-                    type: getValue('source.type'),
+                    type: sourceType,
                     path: getValue('source.path'),
                     file_pattern: getValue('source.file_pattern') || null,
                     config_ref: getValue('source.config_ref') || null,
-                    connection: getValue('source.type') === 'sftp' ? {
-                        host: getValue('source.connection.host'),
-                        port: parseInt(getValue('source.connection.port')) || 22,
-                        username: getValue('source.connection.username'),
-                        password: getValue('source.connection.password')
-                    } : null
+                    connection: sourceConn,
                 },
                 destination: {
-                    type: getValue('destination.type'),
+                    type: destType,
                     path: getValue('destination.path'),
                     bucket: getValue('destination.bucket') || null,
                     config_ref: getValue('destination.config_ref') || null,
-                    connection: getValue('destination.type') === 'sftp' ? {
-                        host: getValue('destination.connection.host'),
-                        port: parseInt(getValue('destination.connection.port')) || 22,
-                        username: getValue('destination.connection.username'),
-                        password: getValue('destination.connection.password')
-                    } : null
+                    connection: destConn,
                 },
                 processing: {
                     enabled: getValue('processing.enabled'),
@@ -744,12 +856,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Clean nulls
             Object.keys(job.source).forEach(k => { if (job.source[k] === null) delete job.source[k]; });
             Object.keys(job.destination).forEach(k => { if (job.destination[k] === null) delete job.destination[k]; });
+            // Preserve `false` (meaningful for hdfs verify_ssl/kerberos/overwrite); only drop empty strings & nulls.
+            const isEmpty = (v) => v === '' || v == null;
             if (job.source.connection) {
-                Object.keys(job.source.connection).forEach(k => { if (!job.source.connection[k]) delete job.source.connection[k]; });
+                Object.keys(job.source.connection).forEach(k => { if (isEmpty(job.source.connection[k])) delete job.source.connection[k]; });
                 if (Object.keys(job.source.connection).length === 0) delete job.source.connection;
             }
             if (job.destination.connection) {
-                Object.keys(job.destination.connection).forEach(k => { if (!job.destination.connection[k]) delete job.destination.connection[k]; });
+                Object.keys(job.destination.connection).forEach(k => { if (isEmpty(job.destination.connection[k])) delete job.destination.connection[k]; });
                 if (Object.keys(job.destination.connection).length === 0) delete job.destination.connection;
             }
             if (!job.backup.location) delete job.backup.location;
@@ -779,6 +893,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (job.source.connection.port) yaml += `        port: ${job.source.connection.port}\n`;
                 if (job.source.connection.username) yaml += `        username: ${job.source.connection.username}\n`;
                 if (job.source.connection.password) yaml += `        password: "${job.source.connection.password}"\n`;
+                if (job.source.connection.namenode) yaml += `        namenode: "${job.source.connection.namenode}"\n`;
+                if (typeof job.source.connection.kerberos === 'boolean') yaml += `        kerberos: ${job.source.connection.kerberos}\n`;
+                if (typeof job.source.connection.verify_ssl === 'boolean') yaml += `        verify_ssl: ${job.source.connection.verify_ssl}\n`;
+                if (job.source.connection.user) yaml += `        user: ${job.source.connection.user}\n`;
             }
             yaml += `\n`;
             yaml += `    destination:\n`;
@@ -792,6 +910,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (job.destination.connection.port) yaml += `        port: ${job.destination.connection.port}\n`;
                 if (job.destination.connection.username) yaml += `        username: ${job.destination.connection.username}\n`;
                 if (job.destination.connection.password) yaml += `        password: "${job.destination.connection.password}"\n`;
+                if (job.destination.connection.namenode) yaml += `        namenode: "${job.destination.connection.namenode}"\n`;
+                if (typeof job.destination.connection.kerberos === 'boolean') yaml += `        kerberos: ${job.destination.connection.kerberos}\n`;
+                if (typeof job.destination.connection.verify_ssl === 'boolean') yaml += `        verify_ssl: ${job.destination.connection.verify_ssl}\n`;
+                if (typeof job.destination.connection.overwrite === 'boolean') yaml += `        overwrite: ${job.destination.connection.overwrite}\n`;
+                if (job.destination.connection.user) yaml += `        user: ${job.destination.connection.user}\n`;
             }
             yaml += `\n`;
             yaml += `    processing:\n`;

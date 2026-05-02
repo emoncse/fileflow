@@ -61,10 +61,10 @@ pip install fileflow-agent
 fileflow init ~/my_fileflow_workspace
 
 # 3. Start the Agent from the configured workspace
-fileflow start ~/my_fileflow_workspace --port 8000
+fileflow start ~/my_fileflow_workspace --port 7345
 ```
 
-Once running, open `http://localhost:8000` to access the Neumorphic monitoring dashboard.
+Once running, open `http://localhost:7345` to access the Neumorphic monitoring dashboard.
 
 ### Configuration
 
@@ -148,31 +148,11 @@ class MySourceConnector(SourceConnector):
         ...
 ```
 
-## Publishing to PyPI
-
-If you are a maintainer, you can package and release new versions to the official Python Package Index (PyPI).
-
-1. Update the `version = "X.Y.Z"` string inside `pyproject.toml`.
-2. Ensure you have the build tools installed:
-   ```bash
-   pip install build twine
-   ```
-3. Remove old build artifacts and generate the new Wheel (`.whl`) and Source Tarball (`.tar.gz`):
-   ```bash
-   rm -rf build dist src/*.egg-info
-   python -m build
-   ```
-4. Upload the built packages to PyPI securely using Twine:
-   ```bash
-   twine upload dist/*
-   ```
-   *(You will be prompted for your PyPI API token, which should be prefixed with `pypi-`)*
-
 ## Contributing
 
 Contributions are welcome. Please open an issue first to discuss what you'd like to change.
 
-1. Fork the repository
+1. Fork the repository (https://github.com/emoncse/fileflow)
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)

@@ -58,7 +58,7 @@ def main():
     start_parser = subparsers.add_parser("start", help="Start the fileflow agent")
     start_parser.add_argument("directory", type=str, nargs="?", default=".", help="Workspace directory to start")
     start_parser.add_argument("--host", type=str, default="0.0.0.0", help="API host (default: 0.0.0.0)")
-    start_parser.add_argument("--port", type=int, default=8000, help="API port (default: 8000)")
+    start_parser.add_argument("--port", type=int, default=7345, help="API port (default: 7345)")
     
     args = parser.parse_args()
     
