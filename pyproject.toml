@@ -1,6 +1,6 @@
 [project]
 name = "fileflow_agent"
-version = "0.1.2"
+version = "0.2.0"
 description = "A scheduler-driven data transfer platform"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -14,7 +14,9 @@ dependencies = [
     "uvicorn",
     "paramiko",
     "boto3",
-    "hdfs"
+    "hdfs",
+    "requests",
+    "requests-kerberos"
 ]
 
 [project.scripts]

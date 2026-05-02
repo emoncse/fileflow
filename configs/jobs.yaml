@@ -28,3 +28,28 @@ jobs:
     verification:
       method: size_match
 
+  # Local -> WebHDFS upload, equivalent to:
+  #   curl -L -k --negotiate -u : -X PUT -T <local> \
+  #     "https://st-c01r01-m03.bigdata.domain_example.com:<port>/webhdfs/v1/external/nextapp/eventlog/<file>?op=CREATE&overwrite=true"
+  # Requires `kinit` to have placed a valid ticket in the cache before the job runs.
+  - job_id: local_to_bigdata
+    enabled: false
+    schedule: "*/5 * * * *"
+
+    source:
+      type: local
+      path: /var/tmp
+      file_pattern: "test-*.txt"
+
+    destination:
+      type: hdfs
+      path: /external/nextapp/eventlog
+      connection:
+        namenode: "https://st-c01r01-m03.bigdata.domain_example.com:9871"
+        kerberos: true        # --negotiate -u :
+        verify_ssl: false     # -k
+        overwrite: true       # op=CREATE&overwrite=true
+
+    verification:
+      method: size_match
+
