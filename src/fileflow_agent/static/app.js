@@ -344,6 +344,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const connectorTypes = ['local', 'sftp', 's3', 'scp', 'hdfs'];
     const verificationMethods = ['size_match', 'file_exists', 'checksum_match'];
 
+    // S3 provider presets — quick-fill for endpoint/region/path-style.
+    // AWS S3 is the default (empty endpoint => boto3 uses AWS automatically).
+    // Each preset only sets the listed fields; user can still override anything by hand.
+    const S3_PROVIDERS = {
+        aws:        { label: 'AWS S3 (default)',                endpoint: '',                                                  region: 'us-east-1', pathStyle: false },
+        do_nyc3:    { label: 'DigitalOcean Spaces - NYC3',      endpoint: 'https://nyc3.digitaloceanspaces.com',                region: 'nyc3',      pathStyle: false },
+        do_sfo3:    { label: 'DigitalOcean Spaces - SFO3',      endpoint: 'https://sfo3.digitaloceanspaces.com',                region: 'sfo3',      pathStyle: false },
+        do_ams3:    { label: 'DigitalOcean Spaces - AMS3',      endpoint: 'https://ams3.digitaloceanspaces.com',                region: 'ams3',      pathStyle: false },
+        do_fra1:    { label: 'DigitalOcean Spaces - FRA1',      endpoint: 'https://fra1.digitaloceanspaces.com',                region: 'fra1',      pathStyle: false },
+        do_sgp1:    { label: 'DigitalOcean Spaces - SGP1',      endpoint: 'https://sgp1.digitaloceanspaces.com',                region: 'sgp1',      pathStyle: false },
+        do_blr1:    { label: 'DigitalOcean Spaces - BLR1',      endpoint: 'https://blr1.digitaloceanspaces.com',                region: 'blr1',      pathStyle: false },
+        do_syd1:    { label: 'DigitalOcean Spaces - SYD1',      endpoint: 'https://syd1.digitaloceanspaces.com',                region: 'syd1',      pathStyle: false },
+        r2:         { label: 'Cloudflare R2 (fill <account_id>)', endpoint: 'https://<account_id>.r2.cloudflarestorage.com',     region: 'auto',      pathStyle: false },
+        b2:         { label: 'Backblaze B2 (S3 API)',           endpoint: 'https://s3.us-west-002.backblazeb2.com',             region: 'us-west-002', pathStyle: false },
+        minio:      { label: 'MinIO / self-hosted',             endpoint: 'http://localhost:9000',                              region: 'us-east-1', pathStyle: true  },
+        custom:     { label: 'Custom (no preset)',              endpoint: null,                                                 region: null,        pathStyle: null  },
+    };
+
+    /** Detect which preset (if any) matches the current connection values. Used to set
+     * the dropdown's selected value when re-rendering an existing job. */
+    function detectS3Provider(conn) {
+        if (!conn) return 'aws';
+        const ep = conn.endpoint_url || '';
+        for (const [key, p] of Object.entries(S3_PROVIDERS)) {
+            if (key === 'custom') continue;
+            if (p.endpoint === ep && (p.region == null || p.region === conn.region)) return key;
+        }
+        return ep ? 'custom' : 'aws';
+    }
+
     // Processing step definitions: value sent to backend, label shown in UI, tooltip description.
     const PROCESSING_STEPS = [
         { value: 'compress',     label: 'GZ Compress',   desc: 'Compress file with gzip (.gz)' },
@@ -479,6 +509,8 @@ bucket_location = nyc3</code>
                             <details style="margin-top:8px;">
                                 <summary style="cursor:pointer; color:var(--accent);">How each field maps to the form below</summary>
                                 <ul style="margin:8px 0 0 18px; padding:0; line-height:1.6;">
+                                    <li><strong>AWS S3 is the default</strong> &mdash; leave Endpoint URL blank to talk to AWS (boto3 picks the right host from Region)</li>
+                                    <li><strong>Multiple S3 setups</strong> &mdash; each job has its own connection, so you can have one job pushing to AWS, another to DO Spaces, another to MinIO, all running on the same scheduler. Click <em>+ Add Job</em> to create another.</li>
                                     <li><code>access_key</code> &rarr; <strong>Access Key</strong></li>
                                     <li><code>secret_key</code> &rarr; <strong>Secret Key</strong> &mdash; for production, leave blank here and set <code>AWS_SECRET_ACCESS_KEY</code> in <code>.env</code></li>
                                     <li><code>host_base</code> + <code>use_https</code> &rarr; <strong>Endpoint URL</strong> as a single field, e.g. <code>https://nyc3.digitaloceanspaces.com</code> (omit for AWS S3)</li>
@@ -488,9 +520,15 @@ bucket_location = nyc3</code>
                                 </ul>
                             </details>
                         </div>
+                        <div class="field-group" style="grid-column: 1 / -1;">
+                            <label>Provider Preset <small style="color:var(--text-secondary);font-weight:400;">&mdash; quick-fills Endpoint URL + Region; you can still override</small></label>
+                            <select class="s3-provider-preset" data-target="source">
+                                ${Object.entries(S3_PROVIDERS).map(([k, p]) => `<option value="${k}" ${detectS3Provider(job.source?.connection) === k ? 'selected' : ''}>${p.label}</option>`).join('')}
+                            </select>
+                        </div>
                         <div class="field-group">
-                            <label>Endpoint URL <small style="color:var(--text-secondary);font-weight:400;">(omit for AWS)</small></label>
-                            <input type="text" data-field="source.connection.endpoint_url" value="${job.source?.connection?.endpoint_url || ''}" placeholder="https://nyc3.digitaloceanspaces.com">
+                            <label>Endpoint URL <small style="color:var(--text-secondary);font-weight:400;">(blank &rarr; AWS S3)</small></label>
+                            <input type="text" data-field="source.connection.endpoint_url" value="${job.source?.connection?.endpoint_url || ''}" placeholder="leave blank for AWS S3">
                         </div>
                         <div class="field-group">
                             <label>Region</label>
@@ -619,6 +657,8 @@ bucket_location = nyc3</code>
                             <details style="margin-top:8px;">
                                 <summary style="cursor:pointer; color:var(--accent);">How each field maps to the form below</summary>
                                 <ul style="margin:8px 0 0 18px; padding:0; line-height:1.6;">
+                                    <li><strong>AWS S3 is the default</strong> &mdash; leave Endpoint URL blank to talk to AWS (boto3 picks the right host from Region)</li>
+                                    <li><strong>Multiple S3 setups</strong> &mdash; each job has its own connection, so you can ship to AWS in one job and DO Spaces in another. Click <em>+ Add Job</em> to create another.</li>
                                     <li><code>access_key</code> &rarr; <strong>Access Key</strong></li>
                                     <li><code>secret_key</code> &rarr; <strong>Secret Key</strong> &mdash; for production, leave blank here and set <code>AWS_SECRET_ACCESS_KEY</code> in <code>.env</code></li>
                                     <li><code>host_base</code> + <code>use_https</code> &rarr; <strong>Endpoint URL</strong> as a single field, e.g. <code>https://nyc3.digitaloceanspaces.com</code> (omit for AWS S3)</li>
@@ -629,9 +669,15 @@ bucket_location = nyc3</code>
                                 </ul>
                             </details>
                         </div>
+                        <div class="field-group" style="grid-column: 1 / -1;">
+                            <label>Provider Preset <small style="color:var(--text-secondary);font-weight:400;">&mdash; quick-fills Endpoint URL + Region; you can still override</small></label>
+                            <select class="s3-provider-preset" data-target="destination">
+                                ${Object.entries(S3_PROVIDERS).map(([k, p]) => `<option value="${k}" ${detectS3Provider(job.destination?.connection) === k ? 'selected' : ''}>${p.label}</option>`).join('')}
+                            </select>
+                        </div>
                         <div class="field-group">
-                            <label>Endpoint URL <small style="color:var(--text-secondary);font-weight:400;">(omit for AWS)</small></label>
-                            <input type="text" data-field="destination.connection.endpoint_url" value="${job.destination?.connection?.endpoint_url || ''}" placeholder="https://nyc3.digitaloceanspaces.com">
+                            <label>Endpoint URL <small style="color:var(--text-secondary);font-weight:400;">(blank &rarr; AWS S3)</small></label>
+                            <input type="text" data-field="destination.connection.endpoint_url" value="${job.destination?.connection?.endpoint_url || ''}" placeholder="leave blank for AWS S3">
                         </div>
                         <div class="field-group">
                             <label>Region</label>
@@ -813,6 +859,28 @@ bucket_location = nyc3</code>
             card.querySelector('.dest-sftp-fields').style.display = e.target.value === 'sftp' ? 'grid' : 'none';
             card.querySelector('.dest-hdfs-fields').style.display = e.target.value === 'hdfs' ? 'grid' : 'none';
             card.querySelector('.dest-s3-fields').style.display = e.target.value === 's3' ? 'grid' : 'none';
+        });
+
+        // S3 provider preset: picking one auto-fills endpoint_url, region, and the
+        // Path-Style toggle. "Custom" leaves everything alone.
+        card.querySelectorAll('.s3-provider-preset').forEach(sel => {
+            sel.addEventListener('change', (e) => {
+                const target = e.target.dataset.target;  // 'source' or 'destination'
+                const preset = S3_PROVIDERS[e.target.value];
+                if (!preset || preset.endpoint == null) return;  // 'custom' — no-op
+
+                const epInput  = card.querySelector(`input[data-field="${target}.connection.endpoint_url"]`);
+                const regInput = card.querySelector(`input[data-field="${target}.connection.region"]`);
+                const psToggle = card.querySelector(`button.toggle[data-field="${target}.connection.addressing_style"]`);
+
+                if (epInput)  epInput.value  = preset.endpoint;
+                if (regInput) regInput.value = preset.region;
+                if (psToggle && preset.pathStyle != null) {
+                    psToggle.classList.toggle('active', preset.pathStyle);
+                    const lbl = psToggle.parentElement.querySelector('span');
+                    if (lbl) lbl.textContent = preset.pathStyle ? 'Yes' : 'No';
+                }
+            });
         });
 
         // Delete button
