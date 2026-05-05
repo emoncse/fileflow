@@ -28,10 +28,14 @@ jobs:
     verification:
       method: size_match
 
-  # Local -> WebHDFS upload, equivalent to:
-  #   curl -L -k --negotiate -u : -X PUT -T <local> \
-  #     "https://st-c01r01-m03.bigdata.domain_example.com:<port>/webhdfs/v1/external/nextapp/eventlog/<file>?op=CREATE&overwrite=true"
-  # Requires `kinit` to have placed a valid ticket in the cache before the job runs.
+  # Local -> HDFS upload via the production-friendly CLI transport.
+  # Equivalent shell session per file:
+  #   kinit -kt /home/sentinel/sentinel.kt sentinel@EXAMPLE.COM
+  #   hadoopcli
+  #   > copyFromLocal /var/tmp/<file> /external/nextapp/eventlog
+  #   > exit
+  # The connector handles kinit automatically (refreshes the ticket on every
+  # upload) using the principal+keytab below.
   - job_id: local_to_bigdata
     enabled: false
     schedule: "*/5 * * * *"
@@ -39,16 +43,42 @@ jobs:
     source:
       type: local
       path: /var/tmp
-      file_pattern: "test-*.txt"
+      file_pattern: "*.gz"
 
     destination:
       type: hdfs
       path: /external/nextapp/eventlog
       connection:
+        transport: cli                                  # default; reads core-site.xml from host
+        principal: "sentinel@EXAMPLE.COM"               # kinit -kt <keytab> <principal>
+        keytab: "/home/sentinel/sentinel.kt"
+        krb5ccname: "FILE:/tmp/krb5cc_sentinel"         # optional ticket cache override
+        hadoop_cli: hadoopcli                           # binary; default if omitted
+        overwrite: true                                 # rm -skipTrash, then copyFromLocal
+
+    verification:
+      method: size_match
+
+  # Same upload via the WebHDFS REST transport — useful when this host doesn't
+  # have a Hadoop client installed but can reach the namenode + datanodes over HTTPS.
+  - job_id: local_to_bigdata_webhdfs
+    enabled: false
+    schedule: "*/5 * * * *"
+
+    source:
+      type: local
+      path: /var/tmp
+      file_pattern: "*.gz"
+
+    destination:
+      type: hdfs
+      path: /external/nextapp/eventlog
+      connection:
+        transport: webhdfs                              # opt-in REST mode
         namenode: "https://st-c01r01-m03.bigdata.domain_example.com:9871"
-        kerberos: true        # --negotiate -u :
-        verify_ssl: false     # -k
-        overwrite: true       # op=CREATE&overwrite=true
+        kerberos: true                                  # --negotiate -u :
+        verify_ssl: false                               # -k
+        overwrite: true                                 # op=CREATE&overwrite=true
 
     verification:
       method: size_match

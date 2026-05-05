@@ -563,42 +563,77 @@ bucket_location = nyc3</code>
                     </div>
                     <div class="field-row hdfs-fields source-hdfs-fields" style="margin-top: 10px; display: ${job.source?.type === 'hdfs' ? 'grid' : 'none'};">
                         <div style="grid-column: 1 / -1; padding: 10px 12px; background: var(--bg-main); box-shadow: var(--shadow-inner-sm); border-radius: 8px; font-size: 0.78rem; color: var(--text-secondary);">
-                            <strong style="color: var(--text-primary); display:block; margin-bottom:6px;">Equivalent curl (download)</strong>
-                            <code style="display:block; white-space:pre-wrap; word-break:break-all; font-family:monospace; color:var(--text-primary);">curl -L -k --negotiate -u : -X GET "&lt;namenode&gt;/webhdfs/v1&lt;path&gt;/&lt;file&gt;?op=OPEN" -o &lt;local-file&gt;</code>
+                            <strong style="color: var(--text-primary); display:block; margin-bottom:6px;">HDFS transport: CLI (default) or WebHDFS</strong>
+                            <details style="margin-top:4px;" open>
+                                <summary style="cursor:pointer; color:var(--accent);">CLI mode (recommended) &mdash; uses <code>hadoopcli</code> + <code>kinit -kt</code></summary>
+                                <p style="margin:6px 0;">Equivalent shell session:</p>
+                                <code style="display:block; white-space:pre-wrap; word-break:break-all; font-family:monospace; color:var(--text-primary);">kinit -kt &lt;keytab&gt; &lt;principal&gt;
+hadoopcli
+&gt; copyToLocal &lt;hdfs-path&gt;/&lt;file&gt; &lt;local-path&gt;
+&gt; exit</code>
+                                <ul style="margin:6px 0 0 18px; padding:0; line-height:1.6;">
+                                    <li>Set <strong>Principal</strong> + <strong>Keytab</strong> &rarr; the connector runs <code>kinit -kt</code> automatically before each operation. Skip them to reuse the ambient ticket from a manual <code>kinit</code>.</li>
+                                    <li><strong>KRB5CCNAME</strong> &mdash; optional override for the ticket cache file (e.g. <code>FILE:/tmp/krb5cc_sentinel</code>).</li>
+                                    <li><strong>Hadoop CLI</strong> &mdash; binary name; default <code>hadoopcli</code>. Reads core-site.xml / hdfs-site.xml from the host, so no namenode URL needed.</li>
+                                </ul>
+                            </details>
                             <details style="margin-top:8px;">
-                                <summary style="cursor:pointer; color:var(--accent);">What each flag means &amp; how to configure it</summary>
-                                <ul style="margin:8px 0 0 18px; padding:0; line-height:1.6;">
-                                    <li><code>-L</code> &mdash; follow the 307 redirect from namenode to datanode (handled automatically)</li>
-                                    <li><code>-k</code> &mdash; skip TLS certificate verification &rarr; set <strong>Verify SSL = No</strong></li>
-                                    <li><code>--negotiate -u :</code> &mdash; SPNEGO/Kerberos using the <code>kinit</code> ticket cache &rarr; set <strong>Kerberos = Yes</strong></li>
-                                    <li><code>op=OPEN</code> &mdash; WebHDFS read operation (used by source connector when listing/downloading)</li>
-                                    <li><code>&lt;namenode&gt;</code> &rarr; <strong>Namenode URL</strong> field below (e.g. <code>https://st-c01r01-m03.bigdata.domain_example.com:9871</code>)</li>
-                                    <li><code>&lt;path&gt;</code> &rarr; <strong>Path</strong> field in the Source header (e.g. <code>/external/nextapp/eventlog</code>)</li>
-                                    <li>Non-Kerberos clusters: turn <strong>Kerberos = No</strong> and put a username in <strong>User</strong> &mdash; this appends <code>?user.name=&lt;user&gt;</code></li>
+                                <summary style="cursor:pointer; color:var(--accent);">WebHDFS mode &mdash; pure REST, no Hadoop client needed</summary>
+                                <p style="margin:6px 0;">Equivalent curl:</p>
+                                <code style="display:block; white-space:pre-wrap; word-break:break-all; font-family:monospace; color:var(--text-primary);">curl -L -k --negotiate -u : -X GET "&lt;namenode&gt;/webhdfs/v1&lt;path&gt;/&lt;file&gt;?op=OPEN" -o &lt;local-file&gt;</code>
+                                <ul style="margin:6px 0 0 18px; padding:0; line-height:1.6;">
+                                    <li><code>-k</code> &rarr; <strong>Verify SSL = No</strong>; <code>--negotiate -u :</code> &rarr; <strong>Kerberos = Yes</strong>; <code>-L</code> &rarr; handled automatically.</li>
+                                    <li>Requires <strong>Namenode URL</strong> (e.g. <code>https://nn.example.com:9871</code>) reachable from this host, including all datanode hostnames.</li>
+                                    <li>Non-Kerberos clusters: turn <strong>Kerberos = No</strong> and set <strong>User</strong> &mdash; appends <code>?user.name=&lt;user&gt;</code>.</li>
                                 </ul>
                             </details>
                         </div>
-                        <div class="field-group">
-                            <label>Namenode URL</label>
-                            <input type="text" data-field="source.connection.namenode" value="${job.source?.connection?.namenode || ''}" placeholder="https://nn.example.com:9871">
+                        <div class="field-group" style="grid-column: 1 / -1;">
+                            <label>Transport <small style="color:var(--text-secondary);font-weight:400;">&mdash; cli is the production-friendly default</small></label>
+                            <select class="hdfs-transport-select" data-target="source" data-field="source.connection.transport">
+                                <option value="cli"     ${(job.source?.connection?.transport || 'cli') === 'cli'     ? 'selected' : ''}>CLI (hadoopcli + kinit) &mdash; default</option>
+                                <option value="webhdfs" ${(job.source?.connection?.transport)         === 'webhdfs' ? 'selected' : ''}>WebHDFS (REST API)</option>
+                            </select>
                         </div>
                         <div class="field-group">
-                            <label title="curl --negotiate -u :  uses the kinit ticket cache">Kerberos</label>
-                            <div class="toggle-container">
-                                <button class="toggle ${job.source?.connection?.kerberos !== false ? 'active' : ''}" data-field="source.connection.kerberos"></button>
-                                <span style="font-size:0.8rem; color:var(--text-secondary);">${job.source?.connection?.kerberos !== false ? 'Yes' : 'No'}</span>
+                            <label>Principal <small style="color:var(--text-secondary);font-weight:400;">(for kinit -kt)</small></label>
+                            <input type="text" data-field="source.connection.principal" value="${job.source?.connection?.principal || ''}" placeholder="user@REALM.COM">
+                        </div>
+                        <div class="field-group">
+                            <label>Keytab path</label>
+                            <input type="text" data-field="source.connection.keytab" value="${job.source?.connection?.keytab || ''}" placeholder="/path/to/user.keytab">
+                        </div>
+                        <div class="field-group">
+                            <label>KRB5CCNAME <small style="color:var(--text-secondary);font-weight:400;">(optional)</small></label>
+                            <input type="text" data-field="source.connection.krb5ccname" value="${job.source?.connection?.krb5ccname || ''}" placeholder="FILE:/tmp/krb5cc_user">
+                        </div>
+                        <div class="field-group">
+                            <label>Hadoop CLI <small style="color:var(--text-secondary);font-weight:400;">(CLI mode)</small></label>
+                            <input type="text" data-field="source.connection.hadoop_cli" value="${job.source?.connection?.hadoop_cli || ''}" placeholder="hadoopcli">
+                        </div>
+                        <div class="field-row source-hdfs-webhdfs-fields" style="grid-column: 1 / -1; display: ${(job.source?.connection?.transport || 'cli') === 'webhdfs' ? 'grid' : 'none'}; gap: 12px;">
+                            <div class="field-group">
+                                <label>Namenode URL</label>
+                                <input type="text" data-field="source.connection.namenode" value="${job.source?.connection?.namenode || ''}" placeholder="https://nn.example.com:9871">
                             </div>
-                        </div>
-                        <div class="field-group">
-                            <label title="Off matches curl -k (skip TLS verify)">Verify SSL</label>
-                            <div class="toggle-container">
-                                <button class="toggle ${job.source?.connection?.verify_ssl ? 'active' : ''}" data-field="source.connection.verify_ssl"></button>
-                                <span style="font-size:0.8rem; color:var(--text-secondary);">${job.source?.connection?.verify_ssl ? 'Yes' : 'No'}</span>
+                            <div class="field-group">
+                                <label title="curl --negotiate -u :  uses the kinit ticket cache">Kerberos</label>
+                                <div class="toggle-container">
+                                    <button class="toggle ${job.source?.connection?.kerberos !== false ? 'active' : ''}" data-field="source.connection.kerberos"></button>
+                                    <span style="font-size:0.8rem; color:var(--text-secondary);">${job.source?.connection?.kerberos !== false ? 'Yes' : 'No'}</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="field-group">
-                            <label>User <small style="color:var(--text-secondary);font-weight:400;">(non-Kerberos)</small></label>
-                            <input type="text" data-field="source.connection.user" value="${job.source?.connection?.user || ''}" placeholder="optional">
+                            <div class="field-group">
+                                <label title="Off matches curl -k (skip TLS verify)">Verify SSL</label>
+                                <div class="toggle-container">
+                                    <button class="toggle ${job.source?.connection?.verify_ssl ? 'active' : ''}" data-field="source.connection.verify_ssl"></button>
+                                    <span style="font-size:0.8rem; color:var(--text-secondary);">${job.source?.connection?.verify_ssl ? 'Yes' : 'No'}</span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label>User <small style="color:var(--text-secondary);font-weight:400;">(non-Kerberos)</small></label>
+                                <input type="text" data-field="source.connection.user" value="${job.source?.connection?.user || ''}" placeholder="optional">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -712,56 +747,86 @@ bucket_location = nyc3</code>
                     </div>
                     <div class="field-row hdfs-fields dest-hdfs-fields" style="margin-top: 10px; display: ${job.destination?.type === 'hdfs' ? 'grid' : 'none'};">
                         <div style="grid-column: 1 / -1; padding: 10px 12px; background: var(--bg-main); box-shadow: var(--shadow-inner-sm); border-radius: 8px; font-size: 0.78rem; color: var(--text-secondary);">
-                            <strong style="color: var(--text-primary); display:block; margin-bottom:6px;">Equivalent curl (upload)</strong>
-                            <code style="display:block; white-space:pre-wrap; word-break:break-all; font-family:monospace; color:var(--text-primary);">curl -L -k --negotiate -u : -X PUT -T &lt;local-file&gt; "&lt;namenode&gt;/webhdfs/v1&lt;path&gt;/&lt;file&gt;?op=CREATE&amp;overwrite=true"</code>
-                            <details style="margin-top:8px;">
-                                <summary style="cursor:pointer; color:var(--accent);">What each flag means &amp; how to configure it</summary>
-                                <ul style="margin:8px 0 0 18px; padding:0; line-height:1.6;">
-                                    <li><code>-L</code> &mdash; follow the namenode's 307 redirect to the datanode. The connector does this as a two-step PUT (namenode &rarr; datanode), nothing to configure.</li>
-                                    <li><code>-k</code> &mdash; skip TLS certificate verification (insecure) &rarr; set <strong>Verify SSL = No</strong></li>
-                                    <li><code>--negotiate -u :</code> &mdash; SPNEGO/Kerberos auth using the ambient <code>kinit</code> ticket; the empty <code>:</code> means &ldquo;no explicit principal&rdquo; &rarr; set <strong>Kerberos = Yes</strong>. Run <code>kinit</code> on the host before the job fires.</li>
-                                    <li><code>-X PUT -T &lt;local-file&gt;</code> &mdash; upload the local file as the request body. The local file comes from the <strong>Source</strong> section.</li>
-                                    <li><code>op=CREATE</code> &mdash; WebHDFS write operation (always used for uploads)</li>
-                                    <li><code>overwrite=true</code> &mdash; replace existing file at the destination &rarr; set <strong>Overwrite = Yes</strong> (turn off to fail if the file already exists)</li>
-                                    <li><code>&lt;namenode&gt;</code> &rarr; <strong>Namenode URL</strong> field below (e.g. <code>https://st-c01r01-m03.bigdata.domain_example.com:9871</code>)</li>
-                                    <li><code>&lt;path&gt;</code> &rarr; <strong>Path</strong> field above in the Destination header (e.g. <code>/external/nextapp/eventlog</code>) &mdash; the connector calls <code>MKDIRS</code> first to ensure the parent exists</li>
-                                    <li>Non-Kerberos clusters: turn <strong>Kerberos = No</strong> and put a username in <strong>User</strong> &mdash; this appends <code>?user.name=&lt;user&gt;</code> to every WebHDFS request</li>
+                            <strong style="color: var(--text-primary); display:block; margin-bottom:6px;">HDFS transport: CLI (default) or WebHDFS</strong>
+                            <details style="margin-top:4px;" open>
+                                <summary style="cursor:pointer; color:var(--accent);">CLI mode (recommended) &mdash; <code>hadoopcli copyFromLocal</code> + <code>kinit -kt</code></summary>
+                                <p style="margin:6px 0;">Equivalent shell session:</p>
+                                <code style="display:block; white-space:pre-wrap; word-break:break-all; font-family:monospace; color:var(--text-primary);">kinit -kt &lt;keytab&gt; &lt;principal&gt;
+hadoopcli
+&gt; copyFromLocal &lt;local-file&gt; &lt;hdfs-dir&gt;
+&gt; exit</code>
+                                <ul style="margin:6px 0 0 18px; padding:0; line-height:1.6;">
+                                    <li>Set <strong>Principal</strong> + <strong>Keytab</strong> &rarr; the connector runs <code>kinit -kt</code> automatically before each upload. Skip them to reuse the ambient ticket.</li>
+                                    <li><strong>KRB5CCNAME</strong> &mdash; optional ticket cache override (e.g. <code>FILE:/tmp/krb5cc_sentinel</code>).</li>
+                                    <li><strong>Hadoop CLI</strong> &mdash; binary; default <code>hadoopcli</code>. Reads core-site.xml / hdfs-site.xml from the host, so no namenode URL needed.</li>
+                                    <li><strong>Overwrite = Yes</strong> &rarr; the connector first runs <code>rm -skipTrash &lt;target&gt;</code> (ignoring "not found"), then <code>copyFromLocal</code>.</li>
                                 </ul>
-                                <div style="margin-top:8px; padding-top:8px; border-top: 1px solid rgba(0,0,0,0.08);">
-                                    <strong style="color:var(--text-primary);">Worked example:</strong> the curl
-                                    <code style="display:block; margin-top:4px; white-space:pre-wrap; word-break:break-all;">curl -L -k --negotiate -u : -X PUT -T /var/tmp/test-1.txt "https://st-c01r01-m03.bigdata.domain_example.com:9871/webhdfs/v1/external/nextapp/eventlog/test.txt?op=CREATE&amp;overwrite=true"</code>
-                                    becomes: Source = local <code>/var/tmp</code> + pattern <code>test-*.txt</code>; Destination Path = <code>/external/nextapp/eventlog</code>; Namenode URL = <code>https://st-c01r01-m03.bigdata.domain_example.com:9871</code>; Kerberos = Yes; Verify SSL = No; Overwrite = Yes.
-                                </div>
+                                <p style="margin:8px 0 4px 0;"><strong>Worked example:</strong></p>
+                                <p style="margin:0;">Source = local <code>/var/tmp</code> + pattern <code>test-*.txt</code>; Destination Path = <code>/external/nextapp/eventlog</code>; Principal = <code>sentinel@EXAMPLE.COM</code>; Keytab = <code>/home/sentinel/sentinel.kt</code>; Hadoop CLI = <code>hadoopcli</code>.</p>
+                            </details>
+                            <details style="margin-top:8px;">
+                                <summary style="cursor:pointer; color:var(--accent);">WebHDFS mode &mdash; pure REST, no Hadoop client needed</summary>
+                                <p style="margin:6px 0;">Equivalent curl:</p>
+                                <code style="display:block; white-space:pre-wrap; word-break:break-all; font-family:monospace; color:var(--text-primary);">curl -L -k --negotiate -u : -X PUT -T &lt;local-file&gt; "&lt;namenode&gt;/webhdfs/v1&lt;path&gt;/&lt;file&gt;?op=CREATE&amp;overwrite=true"</code>
+                                <ul style="margin:6px 0 0 18px; padding:0; line-height:1.6;">
+                                    <li><code>-k</code> &rarr; <strong>Verify SSL = No</strong>; <code>--negotiate -u :</code> &rarr; <strong>Kerberos = Yes</strong>; <code>-L</code> handled automatically (two-step PUT: namenode &rarr; datanode).</li>
+                                    <li>Requires <strong>Namenode URL</strong> reachable from this host, AND every datanode hostname resolvable too &mdash; that's the main reason CLI is preferred.</li>
+                                </ul>
                             </details>
                         </div>
-                        <div class="field-group">
-                            <label>Namenode URL</label>
-                            <input type="text" data-field="destination.connection.namenode" value="${job.destination?.connection?.namenode || ''}" placeholder="https://nn.example.com:9871">
+                        <div class="field-group" style="grid-column: 1 / -1;">
+                            <label>Transport <small style="color:var(--text-secondary);font-weight:400;">&mdash; cli is the production-friendly default</small></label>
+                            <select class="hdfs-transport-select" data-target="destination" data-field="destination.connection.transport">
+                                <option value="cli"     ${(job.destination?.connection?.transport || 'cli') === 'cli'     ? 'selected' : ''}>CLI (hadoopcli + kinit) &mdash; default</option>
+                                <option value="webhdfs" ${(job.destination?.connection?.transport)         === 'webhdfs' ? 'selected' : ''}>WebHDFS (REST API)</option>
+                            </select>
                         </div>
                         <div class="field-group">
-                            <label title="curl --negotiate -u :  uses the kinit ticket cache">Kerberos</label>
-                            <div class="toggle-container">
-                                <button class="toggle ${job.destination?.connection?.kerberos !== false ? 'active' : ''}" data-field="destination.connection.kerberos"></button>
-                                <span style="font-size:0.8rem; color:var(--text-secondary);">${job.destination?.connection?.kerberos !== false ? 'Yes' : 'No'}</span>
-                            </div>
+                            <label>Principal <small style="color:var(--text-secondary);font-weight:400;">(for kinit -kt)</small></label>
+                            <input type="text" data-field="destination.connection.principal" value="${job.destination?.connection?.principal || ''}" placeholder="user@REALM.COM">
                         </div>
                         <div class="field-group">
-                            <label title="Off matches curl -k (skip TLS verify)">Verify SSL</label>
-                            <div class="toggle-container">
-                                <button class="toggle ${job.destination?.connection?.verify_ssl ? 'active' : ''}" data-field="destination.connection.verify_ssl"></button>
-                                <span style="font-size:0.8rem; color:var(--text-secondary);">${job.destination?.connection?.verify_ssl ? 'Yes' : 'No'}</span>
-                            </div>
+                            <label>Keytab path</label>
+                            <input type="text" data-field="destination.connection.keytab" value="${job.destination?.connection?.keytab || ''}" placeholder="/path/to/user.keytab">
                         </div>
                         <div class="field-group">
-                            <label title="op=CREATE&overwrite=true">Overwrite</label>
+                            <label>KRB5CCNAME <small style="color:var(--text-secondary);font-weight:400;">(optional)</small></label>
+                            <input type="text" data-field="destination.connection.krb5ccname" value="${job.destination?.connection?.krb5ccname || ''}" placeholder="FILE:/tmp/krb5cc_user">
+                        </div>
+                        <div class="field-group">
+                            <label>Hadoop CLI <small style="color:var(--text-secondary);font-weight:400;">(CLI mode)</small></label>
+                            <input type="text" data-field="destination.connection.hadoop_cli" value="${job.destination?.connection?.hadoop_cli || ''}" placeholder="hadoopcli">
+                        </div>
+                        <div class="field-group">
+                            <label title="CLI: rm -skipTrash before copyFromLocal. WebHDFS: op=CREATE&overwrite=true">Overwrite</label>
                             <div class="toggle-container">
                                 <button class="toggle ${job.destination?.connection?.overwrite !== false ? 'active' : ''}" data-field="destination.connection.overwrite"></button>
                                 <span style="font-size:0.8rem; color:var(--text-secondary);">${job.destination?.connection?.overwrite !== false ? 'Yes' : 'No'}</span>
                             </div>
                         </div>
-                        <div class="field-group">
-                            <label>User <small style="color:var(--text-secondary);font-weight:400;">(non-Kerberos)</small></label>
-                            <input type="text" data-field="destination.connection.user" value="${job.destination?.connection?.user || ''}" placeholder="optional">
+                        <div class="field-row dest-hdfs-webhdfs-fields" style="grid-column: 1 / -1; display: ${(job.destination?.connection?.transport || 'cli') === 'webhdfs' ? 'grid' : 'none'}; gap: 12px;">
+                            <div class="field-group">
+                                <label>Namenode URL</label>
+                                <input type="text" data-field="destination.connection.namenode" value="${job.destination?.connection?.namenode || ''}" placeholder="https://nn.example.com:9871">
+                            </div>
+                            <div class="field-group">
+                                <label title="curl --negotiate -u :  uses the kinit ticket cache">Kerberos</label>
+                                <div class="toggle-container">
+                                    <button class="toggle ${job.destination?.connection?.kerberos !== false ? 'active' : ''}" data-field="destination.connection.kerberos"></button>
+                                    <span style="font-size:0.8rem; color:var(--text-secondary);">${job.destination?.connection?.kerberos !== false ? 'Yes' : 'No'}</span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label title="Off matches curl -k (skip TLS verify)">Verify SSL</label>
+                                <div class="toggle-container">
+                                    <button class="toggle ${job.destination?.connection?.verify_ssl ? 'active' : ''}" data-field="destination.connection.verify_ssl"></button>
+                                    <span style="font-size:0.8rem; color:var(--text-secondary);">${job.destination?.connection?.verify_ssl ? 'Yes' : 'No'}</span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label>User <small style="color:var(--text-secondary);font-weight:400;">(non-Kerberos)</small></label>
+                                <input type="text" data-field="destination.connection.user" value="${job.destination?.connection?.user || ''}" placeholder="optional">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -859,6 +924,16 @@ bucket_location = nyc3</code>
             card.querySelector('.dest-sftp-fields').style.display = e.target.value === 'sftp' ? 'grid' : 'none';
             card.querySelector('.dest-hdfs-fields').style.display = e.target.value === 'hdfs' ? 'grid' : 'none';
             card.querySelector('.dest-s3-fields').style.display = e.target.value === 's3' ? 'grid' : 'none';
+        });
+
+        // HDFS transport selector: show/hide the WebHDFS-only fields when switching
+        // between cli and webhdfs.
+        card.querySelectorAll('.hdfs-transport-select').forEach(sel => {
+            sel.addEventListener('change', (e) => {
+                const target = e.target.dataset.target;  // 'source' or 'destination'
+                const sub = card.querySelector(`.${target === 'source' ? 'source' : 'dest'}-hdfs-webhdfs-fields`);
+                if (sub) sub.style.display = e.target.value === 'webhdfs' ? 'grid' : 'none';
+            });
         });
 
         // S3 provider preset: picking one auto-fills endpoint_url, region, and the
@@ -991,6 +1066,11 @@ bucket_location = nyc3</code>
                     username: getValue('source.connection.username'),
                     password: getValue('source.connection.password')
                 } : sourceType === 'hdfs' ? {
+                    transport: getValue('source.connection.transport') || 'cli',
+                    principal: getValue('source.connection.principal'),
+                    keytab: getValue('source.connection.keytab'),
+                    krb5ccname: getValue('source.connection.krb5ccname'),
+                    hadoop_cli: getValue('source.connection.hadoop_cli'),
                     namenode: getValue('source.connection.namenode'),
                     kerberos: getValue('source.connection.kerberos'),
                     verify_ssl: getValue('source.connection.verify_ssl'),
@@ -1010,6 +1090,11 @@ bucket_location = nyc3</code>
                     username: getValue('destination.connection.username'),
                     password: getValue('destination.connection.password')
                 } : destType === 'hdfs' ? {
+                    transport: getValue('destination.connection.transport') || 'cli',
+                    principal: getValue('destination.connection.principal'),
+                    keytab: getValue('destination.connection.keytab'),
+                    krb5ccname: getValue('destination.connection.krb5ccname'),
+                    hadoop_cli: getValue('destination.connection.hadoop_cli'),
                     namenode: getValue('destination.connection.namenode'),
                     kerberos: getValue('destination.connection.kerberos'),
                     verify_ssl: getValue('destination.connection.verify_ssl'),
@@ -1097,6 +1182,11 @@ bucket_location = nyc3</code>
                 if (job.source.connection.port) yaml += `        port: ${job.source.connection.port}\n`;
                 if (job.source.connection.username) yaml += `        username: ${job.source.connection.username}\n`;
                 if (job.source.connection.password) yaml += `        password: "${job.source.connection.password}"\n`;
+                if (job.source.connection.transport)  yaml += `        transport: ${job.source.connection.transport}\n`;
+                if (job.source.connection.principal)  yaml += `        principal: "${job.source.connection.principal}"\n`;
+                if (job.source.connection.keytab)     yaml += `        keytab: "${job.source.connection.keytab}"\n`;
+                if (job.source.connection.krb5ccname) yaml += `        krb5ccname: "${job.source.connection.krb5ccname}"\n`;
+                if (job.source.connection.hadoop_cli) yaml += `        hadoop_cli: "${job.source.connection.hadoop_cli}"\n`;
                 if (job.source.connection.namenode) yaml += `        namenode: "${job.source.connection.namenode}"\n`;
                 if (typeof job.source.connection.kerberos === 'boolean') yaml += `        kerberos: ${job.source.connection.kerberos}\n`;
                 if (typeof job.source.connection.verify_ssl === 'boolean') yaml += `        verify_ssl: ${job.source.connection.verify_ssl}\n`;
@@ -1120,6 +1210,11 @@ bucket_location = nyc3</code>
                 if (job.destination.connection.port) yaml += `        port: ${job.destination.connection.port}\n`;
                 if (job.destination.connection.username) yaml += `        username: ${job.destination.connection.username}\n`;
                 if (job.destination.connection.password) yaml += `        password: "${job.destination.connection.password}"\n`;
+                if (job.destination.connection.transport)  yaml += `        transport: ${job.destination.connection.transport}\n`;
+                if (job.destination.connection.principal)  yaml += `        principal: "${job.destination.connection.principal}"\n`;
+                if (job.destination.connection.keytab)     yaml += `        keytab: "${job.destination.connection.keytab}"\n`;
+                if (job.destination.connection.krb5ccname) yaml += `        krb5ccname: "${job.destination.connection.krb5ccname}"\n`;
+                if (job.destination.connection.hadoop_cli) yaml += `        hadoop_cli: "${job.destination.connection.hadoop_cli}"\n`;
                 if (job.destination.connection.namenode) yaml += `        namenode: "${job.destination.connection.namenode}"\n`;
                 if (typeof job.destination.connection.kerberos === 'boolean') yaml += `        kerberos: ${job.destination.connection.kerberos}\n`;
                 if (typeof job.destination.connection.verify_ssl === 'boolean') yaml += `        verify_ssl: ${job.destination.connection.verify_ssl}\n`;

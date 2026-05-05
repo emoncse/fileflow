@@ -65,3 +65,7 @@ backups/
 test_backup/
 test_dest/
 test_source/
+existing_working_file_for_hdfs/
+
+# Claude Code workspace settings
+.claude/
