@@ -53,3 +53,34 @@ jobs:
     verification:
       method: size_match
 
+  # Local -> S3-compatible (DigitalOcean Spaces) upload.
+  # The .s3cfg-equivalent fields:
+  #   access_key       -> connection.access_key       (leave blank to use AWS_ACCESS_KEY_ID env)
+  #   secret_key       -> connection.secret_key       (PREFER env: AWS_SECRET_ACCESS_KEY)
+  #   host_base+https  -> connection.endpoint_url     (omit for vanilla AWS S3)
+  #   bucket_location  -> connection.region
+  - job_id: local_to_do_spaces
+    enabled: false
+    schedule: "*/10 * * * *"
+
+    source:
+      type: local
+      path: /var/tmp
+      file_pattern: "report-*.csv"
+
+    destination:
+      type: s3
+      path: incoming/reports        # key prefix; final key = "incoming/reports/<file>"
+      connection:
+        endpoint_url: "https://nyc3.digitaloceanspaces.com"
+        region: nyc3
+        bucket: my-space-name
+        # access_key + secret_key intentionally omitted: read from env
+        # access_key: "DO00..."   # only inline for dev/testing
+        # secret_key: "..."       # NEVER commit real secrets
+        verify_ssl: true
+        # addressing_style: path  # uncomment for MinIO / older servers
+
+    verification:
+      method: size_match
+
