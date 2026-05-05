@@ -466,6 +466,63 @@ document.addEventListener('DOMContentLoaded', () => {
                             <input type="password" data-field="source.connection.password" value="${job.source?.connection?.password || ''}">
                         </div>
                     </div>
+                    <div class="field-row s3-fields source-s3-fields" style="margin-top: 10px; display: ${job.source?.type === 's3' ? 'grid' : 'none'};">
+                        <div style="grid-column: 1 / -1; padding: 10px 12px; background: var(--bg-main); box-shadow: var(--shadow-inner-sm); border-radius: 8px; font-size: 0.78rem; color: var(--text-secondary);">
+                            <strong style="color: var(--text-primary); display:block; margin-bottom:6px;">Equivalent .s3cfg</strong>
+                            <code style="display:block; white-space:pre; overflow-x:auto; font-family:monospace; color:var(--text-primary);">[default]
+access_key   = &lt;access_key&gt;
+secret_key   = &lt;secret_key&gt;
+host_base    = nyc3.digitaloceanspaces.com
+host_bucket  = %(bucket)s.nyc3.digitaloceanspaces.com
+use_https    = True
+bucket_location = nyc3</code>
+                            <details style="margin-top:8px;">
+                                <summary style="cursor:pointer; color:var(--accent);">How each field maps to the form below</summary>
+                                <ul style="margin:8px 0 0 18px; padding:0; line-height:1.6;">
+                                    <li><code>access_key</code> &rarr; <strong>Access Key</strong></li>
+                                    <li><code>secret_key</code> &rarr; <strong>Secret Key</strong> &mdash; for production, leave blank here and set <code>AWS_SECRET_ACCESS_KEY</code> in <code>.env</code></li>
+                                    <li><code>host_base</code> + <code>use_https</code> &rarr; <strong>Endpoint URL</strong> as a single field, e.g. <code>https://nyc3.digitaloceanspaces.com</code> (omit for AWS S3)</li>
+                                    <li><code>bucket_location</code> &rarr; <strong>Region</strong> (e.g. <code>nyc3</code>, <code>us-east-1</code>)</li>
+                                    <li>Bucket name &rarr; <strong>Bucket</strong> field; the source <strong>Path</strong> above acts as the key prefix to list under</li>
+                                    <li>Self-signed cert (e.g. local MinIO) &rarr; turn <strong>Verify SSL = No</strong></li>
+                                </ul>
+                            </details>
+                        </div>
+                        <div class="field-group">
+                            <label>Endpoint URL <small style="color:var(--text-secondary);font-weight:400;">(omit for AWS)</small></label>
+                            <input type="text" data-field="source.connection.endpoint_url" value="${job.source?.connection?.endpoint_url || ''}" placeholder="https://nyc3.digitaloceanspaces.com">
+                        </div>
+                        <div class="field-group">
+                            <label>Region</label>
+                            <input type="text" data-field="source.connection.region" value="${job.source?.connection?.region || ''}" placeholder="nyc3 / us-east-1">
+                        </div>
+                        <div class="field-group">
+                            <label>Bucket</label>
+                            <input type="text" data-field="source.connection.bucket" value="${job.source?.connection?.bucket || ''}" placeholder="my-bucket">
+                        </div>
+                        <div class="field-group">
+                            <label>Access Key</label>
+                            <input type="text" data-field="source.connection.access_key" value="${job.source?.connection?.access_key || ''}" placeholder="AWS_ACCESS_KEY_ID env if blank">
+                        </div>
+                        <div class="field-group">
+                            <label>Secret Key</label>
+                            <input type="password" data-field="source.connection.secret_key" value="${job.source?.connection?.secret_key || ''}" placeholder="AWS_SECRET_ACCESS_KEY env if blank">
+                        </div>
+                        <div class="field-group">
+                            <label>Verify SSL</label>
+                            <div class="toggle-container">
+                                <button class="toggle ${job.source?.connection?.verify_ssl !== false ? 'active' : ''}" data-field="source.connection.verify_ssl"></button>
+                                <span style="font-size:0.8rem; color:var(--text-secondary);">${job.source?.connection?.verify_ssl !== false ? 'Yes' : 'No'}</span>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label title="Use path-style URLs instead of virtual-host-style. Needed for MinIO and some older servers.">Path-Style</label>
+                            <div class="toggle-container">
+                                <button class="toggle ${job.source?.connection?.addressing_style === 'path' ? 'active' : ''}" data-field="source.connection.addressing_style"></button>
+                                <span style="font-size:0.8rem; color:var(--text-secondary);">${job.source?.connection?.addressing_style === 'path' ? 'Yes' : 'No'}</span>
+                            </div>
+                        </div>
+                    </div>
                     <div class="field-row hdfs-fields source-hdfs-fields" style="margin-top: 10px; display: ${job.source?.type === 'hdfs' ? 'grid' : 'none'};">
                         <div style="grid-column: 1 / -1; padding: 10px 12px; background: var(--bg-main); box-shadow: var(--shadow-inner-sm); border-radius: 8px; font-size: 0.78rem; color: var(--text-secondary);">
                             <strong style="color: var(--text-primary); display:block; margin-bottom:6px;">Equivalent curl (download)</strong>
@@ -547,6 +604,64 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="field-group">
                             <label>Password</label>
                             <input type="password" data-field="destination.connection.password" value="${job.destination?.connection?.password || ''}">
+                        </div>
+                    </div>
+                    <div class="field-row s3-fields dest-s3-fields" style="margin-top: 10px; display: ${job.destination?.type === 's3' ? 'grid' : 'none'};">
+                        <div style="grid-column: 1 / -1; padding: 10px 12px; background: var(--bg-main); box-shadow: var(--shadow-inner-sm); border-radius: 8px; font-size: 0.78rem; color: var(--text-secondary);">
+                            <strong style="color: var(--text-primary); display:block; margin-bottom:6px;">Equivalent .s3cfg</strong>
+                            <code style="display:block; white-space:pre; overflow-x:auto; font-family:monospace; color:var(--text-primary);">[default]
+access_key   = &lt;access_key&gt;
+secret_key   = &lt;secret_key&gt;
+host_base    = nyc3.digitaloceanspaces.com
+host_bucket  = %(bucket)s.nyc3.digitaloceanspaces.com
+use_https    = True
+bucket_location = nyc3</code>
+                            <details style="margin-top:8px;">
+                                <summary style="cursor:pointer; color:var(--accent);">How each field maps to the form below</summary>
+                                <ul style="margin:8px 0 0 18px; padding:0; line-height:1.6;">
+                                    <li><code>access_key</code> &rarr; <strong>Access Key</strong></li>
+                                    <li><code>secret_key</code> &rarr; <strong>Secret Key</strong> &mdash; for production, leave blank here and set <code>AWS_SECRET_ACCESS_KEY</code> in <code>.env</code></li>
+                                    <li><code>host_base</code> + <code>use_https</code> &rarr; <strong>Endpoint URL</strong> as a single field, e.g. <code>https://nyc3.digitaloceanspaces.com</code> (omit for AWS S3)</li>
+                                    <li><code>bucket_location</code> &rarr; <strong>Region</strong> (e.g. <code>nyc3</code>, <code>us-east-1</code>)</li>
+                                    <li>Bucket name &rarr; <strong>Bucket</strong> field below (or the legacy <strong>Bucket (S3)</strong> field at the top of Destination)</li>
+                                    <li>The destination <strong>Path</strong> at the top is the key prefix &mdash; final S3 key is <code>&lt;path&gt;/&lt;file&gt;</code></li>
+                                    <li>MinIO / older servers that need path-style URLs: turn <strong>Path-Style</strong> = Yes</li>
+                                </ul>
+                            </details>
+                        </div>
+                        <div class="field-group">
+                            <label>Endpoint URL <small style="color:var(--text-secondary);font-weight:400;">(omit for AWS)</small></label>
+                            <input type="text" data-field="destination.connection.endpoint_url" value="${job.destination?.connection?.endpoint_url || ''}" placeholder="https://nyc3.digitaloceanspaces.com">
+                        </div>
+                        <div class="field-group">
+                            <label>Region</label>
+                            <input type="text" data-field="destination.connection.region" value="${job.destination?.connection?.region || ''}" placeholder="nyc3 / us-east-1">
+                        </div>
+                        <div class="field-group">
+                            <label>Bucket</label>
+                            <input type="text" data-field="destination.connection.bucket" value="${job.destination?.connection?.bucket || ''}" placeholder="my-bucket">
+                        </div>
+                        <div class="field-group">
+                            <label>Access Key</label>
+                            <input type="text" data-field="destination.connection.access_key" value="${job.destination?.connection?.access_key || ''}" placeholder="AWS_ACCESS_KEY_ID env if blank">
+                        </div>
+                        <div class="field-group">
+                            <label>Secret Key</label>
+                            <input type="password" data-field="destination.connection.secret_key" value="${job.destination?.connection?.secret_key || ''}" placeholder="AWS_SECRET_ACCESS_KEY env if blank">
+                        </div>
+                        <div class="field-group">
+                            <label>Verify SSL</label>
+                            <div class="toggle-container">
+                                <button class="toggle ${job.destination?.connection?.verify_ssl !== false ? 'active' : ''}" data-field="destination.connection.verify_ssl"></button>
+                                <span style="font-size:0.8rem; color:var(--text-secondary);">${job.destination?.connection?.verify_ssl !== false ? 'Yes' : 'No'}</span>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label title="Use path-style URLs (s3.amazonaws.com/bucket/key) instead of virtual-host-style. Needed for MinIO and a few older servers.">Path-Style</label>
+                            <div class="toggle-container">
+                                <button class="toggle ${job.destination?.connection?.addressing_style === 'path' ? 'active' : ''}" data-field="destination.connection.addressing_style"></button>
+                                <span style="font-size:0.8rem; color:var(--text-secondary);">${job.destination?.connection?.addressing_style === 'path' ? 'Yes' : 'No'}</span>
+                            </div>
                         </div>
                     </div>
                     <div class="field-row hdfs-fields dest-hdfs-fields" style="margin-top: 10px; display: ${job.destination?.type === 'hdfs' ? 'grid' : 'none'};">
@@ -688,14 +803,16 @@ document.addEventListener('DOMContentLoaded', () => {
             card.classList.toggle('expanded');
         });
 
-        // Toggle SFTP / HDFS fields visibility based on Type
+        // Toggle SFTP / HDFS / S3 fields visibility based on Type
         card.querySelector('select[data-field="source.type"]').addEventListener('change', (e) => {
             card.querySelector('.source-sftp-fields').style.display = e.target.value === 'sftp' ? 'grid' : 'none';
             card.querySelector('.source-hdfs-fields').style.display = e.target.value === 'hdfs' ? 'grid' : 'none';
+            card.querySelector('.source-s3-fields').style.display = e.target.value === 's3' ? 'grid' : 'none';
         });
         card.querySelector('select[data-field="destination.type"]').addEventListener('change', (e) => {
             card.querySelector('.dest-sftp-fields').style.display = e.target.value === 'sftp' ? 'grid' : 'none';
             card.querySelector('.dest-hdfs-fields').style.display = e.target.value === 'hdfs' ? 'grid' : 'none';
+            card.querySelector('.dest-s3-fields').style.display = e.target.value === 's3' ? 'grid' : 'none';
         });
 
         // Delete button
@@ -797,6 +914,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const sourceType = getValue('source.type');
             const destType   = getValue('destination.type');
+            // S3 uses a string-or-omit for addressing_style; the toggle returns a boolean,
+            // so convert: true -> 'path', false -> undefined (cleanup drops it).
+            const s3Addr = (v) => v === true ? 'path' : null;
             const sourceConn = sourceType === 'sftp' ? {
                     host: getValue('source.connection.host'),
                     port: parseInt(getValue('source.connection.port')) || 22,
@@ -807,6 +927,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     kerberos: getValue('source.connection.kerberos'),
                     verify_ssl: getValue('source.connection.verify_ssl'),
                     user: getValue('source.connection.user'),
+                } : sourceType === 's3' ? {
+                    endpoint_url: getValue('source.connection.endpoint_url'),
+                    region: getValue('source.connection.region'),
+                    bucket: getValue('source.connection.bucket'),
+                    access_key: getValue('source.connection.access_key'),
+                    secret_key: getValue('source.connection.secret_key'),
+                    verify_ssl: getValue('source.connection.verify_ssl'),
+                    addressing_style: s3Addr(getValue('source.connection.addressing_style')),
                 } : null;
             const destConn = destType === 'sftp' ? {
                     host: getValue('destination.connection.host'),
@@ -819,6 +947,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     verify_ssl: getValue('destination.connection.verify_ssl'),
                     overwrite: getValue('destination.connection.overwrite'),
                     user: getValue('destination.connection.user'),
+                } : destType === 's3' ? {
+                    endpoint_url: getValue('destination.connection.endpoint_url'),
+                    region: getValue('destination.connection.region'),
+                    bucket: getValue('destination.connection.bucket'),
+                    access_key: getValue('destination.connection.access_key'),
+                    secret_key: getValue('destination.connection.secret_key'),
+                    verify_ssl: getValue('destination.connection.verify_ssl'),
+                    addressing_style: s3Addr(getValue('destination.connection.addressing_style')),
                 } : null;
 
             const job = {
@@ -897,6 +1033,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof job.source.connection.kerberos === 'boolean') yaml += `        kerberos: ${job.source.connection.kerberos}\n`;
                 if (typeof job.source.connection.verify_ssl === 'boolean') yaml += `        verify_ssl: ${job.source.connection.verify_ssl}\n`;
                 if (job.source.connection.user) yaml += `        user: ${job.source.connection.user}\n`;
+                if (job.source.connection.endpoint_url) yaml += `        endpoint_url: "${job.source.connection.endpoint_url}"\n`;
+                if (job.source.connection.region) yaml += `        region: ${job.source.connection.region}\n`;
+                if (job.source.connection.bucket) yaml += `        bucket: ${job.source.connection.bucket}\n`;
+                if (job.source.connection.access_key) yaml += `        access_key: "${job.source.connection.access_key}"\n`;
+                if (job.source.connection.secret_key) yaml += `        secret_key: "${job.source.connection.secret_key}"\n`;
+                if (job.source.connection.addressing_style) yaml += `        addressing_style: ${job.source.connection.addressing_style}\n`;
             }
             yaml += `\n`;
             yaml += `    destination:\n`;
@@ -915,6 +1057,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof job.destination.connection.verify_ssl === 'boolean') yaml += `        verify_ssl: ${job.destination.connection.verify_ssl}\n`;
                 if (typeof job.destination.connection.overwrite === 'boolean') yaml += `        overwrite: ${job.destination.connection.overwrite}\n`;
                 if (job.destination.connection.user) yaml += `        user: ${job.destination.connection.user}\n`;
+                if (job.destination.connection.endpoint_url) yaml += `        endpoint_url: "${job.destination.connection.endpoint_url}"\n`;
+                if (job.destination.connection.region) yaml += `        region: ${job.destination.connection.region}\n`;
+                if (job.destination.connection.bucket) yaml += `        bucket: ${job.destination.connection.bucket}\n`;
+                if (job.destination.connection.access_key) yaml += `        access_key: "${job.destination.connection.access_key}"\n`;
+                if (job.destination.connection.secret_key) yaml += `        secret_key: "${job.destination.connection.secret_key}"\n`;
+                if (job.destination.connection.addressing_style) yaml += `        addressing_style: ${job.destination.connection.addressing_style}\n`;
             }
             yaml += `\n`;
             yaml += `    processing:\n`;
