@@ -13,7 +13,10 @@ class AppSettings(BaseSettings):
     
     aws_access_key: str = ""
     aws_secret_key: str = ""
-    aws_region: str = "us-east-1"
+    # Empty defaults so the S3 connector falls through to boto3's native resolution
+    # chain (AWS_REGION / AWS_DEFAULT_REGION env, then ~/.aws/config) when neither
+    # the per-job connection nor the .env explicitly specifies a region.
+    aws_region: str = ""
     
     hdfs_host: str = ""
     hdfs_port: int = 9000

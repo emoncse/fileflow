@@ -1,6 +1,6 @@
 [project]
 name = "fileflow_agent"
-version = "0.5.1"
+version = "0.5.2"
 description = "Scheduled file transfer agent for Local, SFTP, S3 (AWS / DO Spaces / R2 / MinIO), and HDFS (hadoopcli or WebHDFS) — with a web dashboard, processing pipeline, and dedup tracking"
 readme = "README.md"
 requires-python = ">=3.10"

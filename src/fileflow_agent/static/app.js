@@ -532,7 +532,7 @@ bucket_location = nyc3</code>
                         </div>
                         <div class="field-group">
                             <label>Region</label>
-                            <input type="text" data-field="source.connection.region" value="${job.source?.connection?.region || ''}" placeholder="nyc3 / us-east-1">
+                            <input type="text" data-field="source.connection.region" value="${job.source?.connection?.region || ''}" placeholder="blank = ~/.aws/config or AWS_REGION env">
                         </div>
                         <div class="field-group">
                             <label>Bucket</label>
@@ -716,7 +716,7 @@ bucket_location = nyc3</code>
                         </div>
                         <div class="field-group">
                             <label>Region</label>
-                            <input type="text" data-field="destination.connection.region" value="${job.destination?.connection?.region || ''}" placeholder="nyc3 / us-east-1">
+                            <input type="text" data-field="destination.connection.region" value="${job.destination?.connection?.region || ''}" placeholder="blank = ~/.aws/config or AWS_REGION env">
                         </div>
                         <div class="field-group">
                             <label>Bucket</label>
