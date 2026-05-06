@@ -62,10 +62,16 @@ def _build_client(connection: Dict[str, Any]):
     if connection.get("verify_ssl") is False:
         kwargs["verify"] = False
 
-    # Virtual-hosted-style addressing is the default and what DO Spaces / R2 want.
-    # MinIO and some other servers prefer path-style; expose it as an opt-in.
+    # Most S3-compatible providers (DO Spaces, R2, MinIO) require s3v4.
+    # We also allow opt-in for path-style addressing.
+    s3_opts = {}
     if connection.get("addressing_style") == "path":
-        kwargs["config"] = BotoConfig(s3={"addressing_style": "path"})
+        s3_opts["addressing_style"] = "path"
+
+    kwargs["config"] = BotoConfig(
+        signature_version="s3v4",
+        s3=s3_opts
+    )
 
     return boto3.client("s3", **kwargs)
 

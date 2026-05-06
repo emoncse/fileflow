@@ -540,7 +540,7 @@ bucket_location = nyc3</code>
                         </div>
                         <div class="field-group">
                             <label>Access Key</label>
-                            <input type="text" data-field="source.connection.access_key" value="${job.source?.connection?.access_key || ''}" placeholder="AWS_ACCESS_KEY_ID env if blank">
+                            <input type="password" data-field="source.connection.access_key" value="${job.source?.connection?.access_key || ''}" placeholder="AWS_ACCESS_KEY_ID env if blank">
                         </div>
                         <div class="field-group">
                             <label>Secret Key</label>
@@ -724,7 +724,7 @@ bucket_location = nyc3</code>
                         </div>
                         <div class="field-group">
                             <label>Access Key</label>
-                            <input type="text" data-field="destination.connection.access_key" value="${job.destination?.connection?.access_key || ''}" placeholder="AWS_ACCESS_KEY_ID env if blank">
+                            <input type="password" data-field="destination.connection.access_key" value="${job.destination?.connection?.access_key || ''}" placeholder="AWS_ACCESS_KEY_ID env if blank">
                         </div>
                         <div class="field-group">
                             <label>Secret Key</label>

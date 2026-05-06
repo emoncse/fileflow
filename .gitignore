@@ -69,3 +69,6 @@ existing_working_file_for_hdfs/
 
 # Claude Code workspace settings
 .claude/
+
+# graphify
+graphify-out/
